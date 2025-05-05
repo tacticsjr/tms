@@ -14,6 +14,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 // Sample subject data
@@ -458,7 +459,7 @@ const TimetableGenerator: React.FC = () => {
 
       {/* AI generation dialog */}
       <Dialog open={isGenerating}>
-        <DialogContent className="sm:max-w-md" hideClose={true}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>AI is generating your timetable</DialogTitle>
             <DialogDescription>
@@ -472,6 +473,13 @@ const TimetableGenerator: React.FC = () => {
               <p className="text-xs text-muted-foreground">Applying hard and soft constraints</p>
             </div>
           </div>
+          {/* We're using the default close button that comes with DialogContent */}
+          {/* If we want to hide it, we can add custom CSS instead of using hideClose */}
+          <style jsx>{`
+            .radix-dialog-close-button {
+              display: none;
+            }
+          `}</style>
         </DialogContent>
       </Dialog>
     </div>

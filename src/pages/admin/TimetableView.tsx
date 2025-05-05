@@ -7,8 +7,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Lock, Unlock, Edit2, Save, RotateCcw } from "lucide-react";
 
+// Define type for timetable entries
+interface TimetableEntry {
+  subject: string;
+  title: string;
+  staff: string;
+  continuous?: boolean;
+  span?: number;
+}
+
+// Type for the daily timetable
+type DaySchedule = TimetableEntry[];
+
+// Type for the full timetable
+interface TimetableData {
+  [key: string]: DaySchedule;
+}
+
 // Sample timetable data
-const sampleTimetableData = {
+const sampleTimetableData: TimetableData = {
   Monday: [
     { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
     { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
@@ -79,7 +96,7 @@ const TimetableView: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
   
-  const [timetable, setTimetable] = useState(sampleTimetableData);
+  const [timetable, setTimetable] = useState<TimetableData>(sampleTimetableData);
   const [editingCell, setEditingCell] = useState<{ day: string; period: number } | null>(null);
   const [lockedCells, setLockedCells] = useState<Array<{ day: string; period: number }>>([]);
 
@@ -87,14 +104,14 @@ const TimetableView: React.FC = () => {
   
   const handleCellClick = (day: string, period: number) => {
     // Check if cell is part of a continuous lab
-    const cell = timetable[day as keyof typeof timetable][period];
+    const cell = timetable[day][period];
     if (cell && cell.continuous && period > 0) {
-      const prevCell = timetable[day as keyof typeof timetable][period - 1];
+      const prevCell = timetable[day][period - 1];
       if (prevCell && prevCell.continuous && prevCell.subject === cell.subject) {
         // This is a continuation cell, edit the first cell instead
         let firstPeriod = period - 1;
         while (firstPeriod > 0 && 
-               timetable[day as keyof typeof timetable][firstPeriod - 1].subject === cell.subject) {
+               timetable[day][firstPeriod - 1]?.subject === cell.subject) {
           firstPeriod--;
         }
         setEditingCell({ day, period: firstPeriod });
@@ -148,14 +165,14 @@ const TimetableView: React.FC = () => {
 
   // This would be used for cell editing, not implemented fully here
   const renderCellContent = (day: string, period: number) => {
-    const dayData = timetable[day as keyof typeof timetable];
+    const dayData = timetable[day];
     if (!dayData || !dayData[period]) return null;
     
     const cell = dayData[period];
     
     // If this is a continuation cell (part of a lab span), don't render content
     if (cell.continuous && period > 0) {
-      const prevCell = timetable[day as keyof typeof timetable][period - 1];
+      const prevCell = timetable[day][period - 1];
       if (prevCell && prevCell.continuous && prevCell.subject === cell.subject) {
         return null;
       }
@@ -270,7 +287,7 @@ const TimetableView: React.FC = () => {
                     <TableRow key={day}>
                       <TableCell className="font-medium">{day}</TableCell>
                       {[0, 1, 2, 3, 4, 5, 6].map((period) => {
-                        const dayData = timetable[day as keyof typeof timetable];
+                        const dayData = timetable[day];
                         const cell = dayData[period];
                         
                         // Skip rendering cells that are part of a multi-period span

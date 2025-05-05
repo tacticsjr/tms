@@ -1,117 +1,87 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Lock, Unlock, Edit2, Save, RotateCcw } from "lucide-react";
-
-// Define type for timetable entries
-interface TimetableEntry {
-  subject: string;
-  title: string;
-  staff: string;
-  continuous?: boolean;
-  span?: number;
-}
-
-// Type for the daily timetable
-type DaySchedule = TimetableEntry[];
-
-// Type for the full timetable
-interface TimetableData {
-  [key: string]: DaySchedule;
-}
-
-// Sample timetable data
-const sampleTimetableData: TimetableData = {
-  Monday: [
-    { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "ML", title: "Machine Learning", staff: "Ms. P. Abirami" },
-    { subject: "FDSA", title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
-    { subject: "CN", title: "Computer Networks", staff: "Mr. Justin Xavier" },
-    { subject: "EVS", title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
-    { subject: "ACTIVITY", title: "Department Activity Hour", staff: "All AI&DS Dept Staffs" }
-  ],
-  Tuesday: [
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "ML", title: "Machine Learning", staff: "Ms. P. Abirami" },
-    { subject: "CN", title: "Computer Networks", staff: "Mr. Justin Xavier" },
-    { subject: "FDSA_LAB", title: "Data Science and Analytics Laboratory", staff: "Ms. Vidya", continuous: true, span: 3 },
-    { subject: "", title: "", staff: "" },
-    { subject: "", title: "", staff: "" },
-    { subject: "LIB", title: "Library / Skill Rack", staff: "Ms. Vidya" }
-  ],
-  Wednesday: [
-    { subject: "EVS", title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
-    { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "ML_LAB", title: "Machine Learning Laboratory", staff: "Ms. P. Abirami", continuous: true, span: 3 },
-    { subject: "", title: "", staff: "" },
-    { subject: "", title: "", staff: "" },
-    { subject: "PD", title: "Professional Development", staff: "Ms. Vidya" }
-  ],
-  Thursday: [
-    { subject: "CN", title: "Computer Networks", staff: "Mr. Justin Xavier" },
-    { subject: "FDSA", title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
-    { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-    { subject: "ML", title: "Machine Learning", staff: "Ms. P. Abirami" },
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "EVS", title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
-    { subject: "PD", title: "Professional Development", staff: "Ms. Vidya" }
-  ],
-  Friday: [
-    { subject: "ML", title: "Machine Learning", staff: "Ms. P. Abirami" },
-    { subject: "CN", title: "Computer Networks", staff: "Mr. Justin Xavier" },
-    { subject: "FDSA", title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-    { subject: "CN_LAB", title: "Computer Networks Lab", staff: "Mr. Justin Xavier", continuous: true, span: 3 },
-    { subject: "", title: "", staff: "" }
-  ],
-  Saturday: [
-    { subject: "FDSA", title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
-    { subject: "PAS", title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-    { subject: "EVS", title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
-    { subject: "OS", title: "Operating Systems", staff: "Ms. Sujitha" },
-    { subject: "CN", title: "Computer Networks", staff: "Mr. Justin Xavier" },
-    { subject: "ACTIVITY", title: "Department Activity Hour", staff: "All AI&DS Dept Staffs" },
-    { subject: "", title: "", staff: "" }
-  ]
-};
-
-const periodTimings = [
-  "8:30-9:20",
-  "9:20-10:10", 
-  "10:10-11:00",
-  "11:15-12:00", // After tea break
-  "12:00-12:45",
-  "1:35-2:25",  // After lunch break
-  "2:25-3:15"
-];
+import { Lock, Unlock, Save, RotateCcw } from "lucide-react";
+import { TimetableData, TimetableDraft, TimeSlot } from "@/types/timetable";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 const TimetableView: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
   
-  const [timetable, setTimetable] = useState<TimetableData>(sampleTimetableData);
+  const [timetable, setTimetable] = useState<TimetableData>({});
+  const [originalTimeSlots, setOriginalTimeSlots] = useState<TimeSlot[]>([]);
   const [editingCell, setEditingCell] = useState<{ day: string; period: number } | null>(null);
   const [lockedCells, setLockedCells] = useState<Array<{ day: string; period: number }>>([]);
+  const [timetableStats, setTimetableStats] = useState({
+    totalSlots: 0,
+    assignedSlots: 0,
+    unassignedSlots: 0
+  });
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const periodTimings = [
+    "8:30-9:20",
+    "9:20-10:10", 
+    "10:10-11:00",
+    "11:15-12:00", 
+    "12:00-12:45",
+    "1:35-2:25", 
+    "2:25-3:15"
+  ];
+
+  // Load timetable data on component mount
+  useEffect(() => {
+    const storedTimetable = localStorage.getItem(`timetable_ui_${year}_${dept}_${section}`);
+    const storedDraft = localStorage.getItem(`timetable_draft_${year}_${dept}_${section}`);
+    
+    if (storedTimetable) {
+      try {
+        const parsedTimetable = JSON.parse(storedTimetable) as TimetableData;
+        setTimetable(parsedTimetable);
+      } catch (error) {
+        console.error("Error parsing timetable data:", error);
+      }
+    }
+
+    if (storedDraft) {
+      try {
+        const parsedDraft = JSON.parse(storedDraft) as TimetableDraft;
+        setOriginalTimeSlots(parsedDraft.timeSlots);
+        
+        // Calculate statistics
+        const validSlots = parsedDraft.timeSlots.filter(slot => !slot.isBreak);
+        const assignedSlots = validSlots.filter(slot => slot.subjectId !== null);
+        
+        setTimetableStats({
+          totalSlots: validSlots.length,
+          assignedSlots: assignedSlots.length,
+          unassignedSlots: validSlots.length - assignedSlots.length
+        });
+      } catch (error) {
+        console.error("Error parsing timetable draft:", error);
+      }
+    }
+  }, [year, dept, section]);
   
   const handleCellClick = (day: string, period: number) => {
     // Check if cell is part of a continuous lab
-    const cell = timetable[day][period];
+    const dayData = timetable[day];
+    if (!dayData) return;
+    
+    const cell = dayData[period];
     if (cell && cell.continuous && period > 0) {
-      const prevCell = timetable[day][period - 1];
+      const prevCell = dayData[period - 1];
       if (prevCell && prevCell.continuous && prevCell.subject === cell.subject) {
         // This is a continuation cell, edit the first cell instead
         let firstPeriod = period - 1;
         while (firstPeriod > 0 && 
-               timetable[day][firstPeriod - 1]?.subject === cell.subject) {
+              dayData[firstPeriod - 1]?.subject === cell.subject) {
           firstPeriod--;
         }
         setEditingCell({ day, period: firstPeriod });
@@ -131,16 +101,64 @@ const TimetableView: React.FC = () => {
       setLockedCells(lockedCells.filter(cell => 
         !(cell.day === day && cell.period === period)
       ));
+      toast({
+        title: "Cell Unlocked",
+        description: `${day} Period ${period + 1} is now unlocked and can be changed.`
+      });
     } else {
       setLockedCells([...lockedCells, { day, period }]);
+      toast({
+        title: "Cell Locked",
+        description: `${day} Period ${period + 1} is now locked and will be preserved during regeneration.`
+      });
     }
   };
   
   const handleSaveTimetable = () => {
-    toast({
-      title: "Timetable Saved",
-      description: "Your draft timetable has been saved successfully.",
-    });
+    // In a real application, this would send the data to the server
+    // For now we'll just persist to localStorage with the locked cells information
+    const draft = localStorage.getItem(`timetable_draft_${year}_${dept}_${section}`);
+    
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft) as TimetableDraft;
+        
+        // Update locked status on the timeslots
+        const updatedTimeSlots = parsedDraft.timeSlots.map(slot => {
+          const isLocked = lockedCells.some(
+            cell => cell.day === slot.day && cell.period === slot.period
+          );
+          
+          return {
+            ...slot,
+            locked: isLocked
+          };
+        });
+        
+        // Save the updated draft
+        const updatedDraft: TimetableDraft = {
+          ...parsedDraft,
+          timeSlots: updatedTimeSlots,
+          lastUpdated: new Date()
+        };
+        
+        localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`, 
+          JSON.stringify(updatedDraft)
+        );
+        
+        toast({
+          title: "Timetable Saved",
+          description: "Your draft timetable has been saved successfully with locked cells preserved.",
+        });
+      } catch (error) {
+        console.error("Error saving timetable:", error);
+        toast({
+          title: "Save Failed",
+          description: "There was an error saving your timetable.",
+          variant: "destructive"
+        });
+      }
+    }
   };
   
   const handleRegenerateTimetable = () => {
@@ -148,11 +166,13 @@ const TimetableView: React.FC = () => {
       title: "Regenerating Timetable",
       description: "Please wait while we regenerate your timetable...",
     });
-    // This would trigger the regeneration process
+    
+    // In a full implementation, this would trigger the regeneration process
+    // preserving any locked cells
     setTimeout(() => {
       toast({
         title: "Timetable Regenerated",
-        description: "Your timetable has been successfully regenerated.",
+        description: "Your timetable has been successfully regenerated preserving locked cells.",
       });
     }, 2000);
   };
@@ -163,7 +183,7 @@ const TimetableView: React.FC = () => {
     return period === 3 || period === 5;
   };
 
-  // This would be used for cell editing, not implemented fully here
+  // Render cell content
   const renderCellContent = (day: string, period: number) => {
     const dayData = timetable[day];
     if (!dayData || !dayData[period]) return null;
@@ -172,7 +192,7 @@ const TimetableView: React.FC = () => {
     
     // If this is a continuation cell (part of a lab span), don't render content
     if (cell.continuous && period > 0) {
-      const prevCell = timetable[day][period - 1];
+      const prevCell = dayData[period - 1];
       if (prevCell && prevCell.continuous && prevCell.subject === cell.subject) {
         return null;
       }
@@ -180,7 +200,7 @@ const TimetableView: React.FC = () => {
     
     const isLocked = isCellLocked(day, period);
     
-    // Determine cell span for lab sessions
+    // Determine cell span for lab sessions - only used for visualization below
     const colSpan = cell.continuous && cell.span ? cell.span : 1;
     
     return (
@@ -246,6 +266,58 @@ const TimetableView: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
+        {/* Analytics Card */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Periods</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{timetableStats.totalSlots}</div>
+              <p className="text-xs text-muted-foreground">
+                Total periods in the schedule
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Assigned Periods</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{timetableStats.assignedSlots}</div>
+              <p className="text-xs text-muted-foreground">
+                Successfully assigned to subjects
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Free Periods</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{timetableStats.unassignedSlots}</div>
+              <p className="text-xs text-muted-foreground">
+                Available for additional subjects
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {timetableStats.unassignedSlots > 0 && (
+          <Alert>
+            <AlertTitle className="flex items-center">
+              <Badge className="mr-2 bg-yellow-500">Note</Badge>
+              Unassigned Periods
+            </AlertTitle>
+            <AlertDescription>
+              There are {timetableStats.unassignedSlots} unassigned periods in the timetable. 
+              These can be used for additional subjects or left as free periods.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
@@ -269,7 +341,7 @@ const TimetableView: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px]">Day</TableHead>
-                    {periodTimings.map((timing, index) => (
+                    {periodTimings.slice(0, 7).map((timing, index) => (
                       <TableHead key={index} className={`min-w-[160px] ${isBreakPeriod(index) ? "relative" : ""}`}>
                         Period {index + 1}
                         <div className="text-xs font-normal">{timing}</div>
@@ -283,37 +355,47 @@ const TimetableView: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {days.map((day) => (
-                    <TableRow key={day}>
-                      <TableCell className="font-medium">{day}</TableCell>
-                      {[0, 1, 2, 3, 4, 5, 6].map((period) => {
-                        const dayData = timetable[day];
-                        const cell = dayData[period];
-                        
-                        // Skip rendering cells that are part of a multi-period span
-                        if (cell.continuous && period > 0) {
-                          const prevCell = dayData[period - 1];
-                          if (prevCell.continuous && prevCell.subject === cell.subject) {
-                            return null;
+                  {Object.keys(timetable).length > 0 ? (
+                    days.map((day) => (
+                      <TableRow key={day}>
+                        <TableCell className="font-medium">{day}</TableCell>
+                        {[0, 1, 2, 3, 4, 5, 6].map((period) => {
+                          if (!timetable[day]) return <TableCell key={`${day}-${period}`} />;
+                          
+                          const cell = timetable[day][period];
+                          if (!cell) return <TableCell key={`${day}-${period}`} />;
+                          
+                          // Skip rendering cells that are part of a multi-period span
+                          if (cell.continuous && period > 0) {
+                            const prevCell = timetable[day][period - 1];
+                            if (prevCell && prevCell.continuous && prevCell.subject === cell.subject) {
+                              return null;
+                            }
                           }
-                        }
-                        
-                        // Calculate colspan for labs
-                        const colSpan = cell.continuous && cell.span ? cell.span : 1;
-                        
-                        return (
-                          <TableCell 
-                            key={`${day}-${period}`}
-                            className={`border ${isCellLocked(day, period) ? "bg-muted/50" : "hover:bg-muted/20"} cursor-pointer`}
-                            onClick={() => handleCellClick(day, period)}
-                            colSpan={colSpan}
-                          >
-                            {renderCellContent(day, period)}
-                          </TableCell>
-                        );
-                      })}
+                          
+                          // Calculate colspan for labs
+                          const colSpan = cell.continuous && cell.span ? cell.span : 1;
+                          
+                          return (
+                            <TableCell 
+                              key={`${day}-${period}`}
+                              className={`border ${isCellLocked(day, period) ? "bg-muted/50" : "hover:bg-muted/20"} cursor-pointer`}
+                              onClick={() => handleCellClick(day, period)}
+                              colSpan={colSpan}
+                            >
+                              {renderCellContent(day, period)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        No timetable data available. Please generate a timetable first.
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

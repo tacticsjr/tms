@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -13,33 +14,53 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
+import { 
+  Subject,
+  Staff,
+  TimetableSettings,
+  TimeSlot,
+  TimetableDraft
+} from "@/types/timetable";
+import { generateTimetable, convertToTimetableData } from "@/utils/timetableGenerator";
+import { Timer } from "lucide-react";
 
 // Sample subject data
-const sampleSubjects = [
-  { id: "PAS", code: "PAS", title: "Probability and Statistics", type: "Theory", periods: 5, staff: "Ms. Sagaya Rebecca" },
-  { id: "OS", code: "OS", title: "Operating Systems", type: "Theory", periods: 6, staff: "Ms. Sujitha" },
-  { id: "ML", code: "ML", title: "Machine Learning", type: "Theory", periods: 5, staff: "Ms. P. Abirami" },
-  { id: "FDSA", code: "FDSA", title: "Fundamentals of Data Science and Analytics", type: "Theory", periods: 5, staff: "Ms. Vidya" },
-  { id: "CN", code: "CN", title: "Computer Networks", type: "Theory", periods: 6, staff: "Mr. Justin Xavier" },
-  { id: "EVS", code: "EVS", title: "Environmental Sciences and Sustainability", type: "Theory", periods: 4, staff: "Mr. Siva Karthikeyan" },
-  { id: "FDSA_LAB", code: "FDSA LAB", title: "Data Science and Analytics Laboratory", type: "Lab", periods: 3, continuous: true, staff: "Ms. Vidya" },
-  { id: "ML_LAB", code: "ML LAB", title: "Machine Learning Laboratory", type: "Lab", periods: 3, continuous: true, staff: "Ms. P. Abirami" },
-  { id: "CN_LAB", code: "CN LAB", title: "Computer Networks Lab", type: "Lab", periods: 3, continuous: true, staff: "" },
-  { id: "ACTIVITY", code: "ACTIVITY", title: "Department Activity Hour", type: "Activity", periods: 2, staff: "All AI&DS Dept Staffs" },
-  { id: "PD", code: "PD", title: "Professional Development", type: "Activity", periods: 2, staff: "Ms. Vidya" },
-  { id: "LIB", code: "LIB/SKILL RACK", title: "Library / Skill Rack", type: "Activity", periods: 1, staff: "Ms. Vidya" },
+const sampleSubjects: Subject[] = [
+  { id: "PAS", code: "PAS", shortName: "PAS", name: "Probability and Statistics", type: "Theory", periodsPerWeek: 5, staffId: "SR", isLab: false, priority: 2, title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
+  { id: "OS", code: "OS", shortName: "OS", name: "Operating Systems", type: "Theory", periodsPerWeek: 6, staffId: "SJ", isLab: false, priority: 1, title: "Operating Systems", staff: "Ms. Sujitha" },
+  { id: "ML", code: "ML", shortName: "ML", name: "Machine Learning", type: "Theory", periodsPerWeek: 5, staffId: "PA", isLab: false, priority: 3, title: "Machine Learning", staff: "Ms. P. Abirami" },
+  { id: "FDSA", code: "FDSA", shortName: "FDSA", name: "Fundamentals of Data Science and Analytics", type: "Theory", periodsPerWeek: 5, staffId: "VD", isLab: false, priority: 4, title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
+  { id: "CN", code: "CN", shortName: "CN", name: "Computer Networks", type: "Theory", periodsPerWeek: 6, staffId: "JX", isLab: false, priority: 5, title: "Computer Networks", staff: "Mr. Justin Xavier" },
+  { id: "EVS", code: "EVS", shortName: "EVS", name: "Environmental Sciences and Sustainability", type: "Theory", periodsPerWeek: 4, staffId: "SK", isLab: false, priority: 6, title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
+  { id: "FDSA_LAB", code: "FDSA LAB", shortName: "FDSA LAB", name: "Data Science and Analytics Laboratory", type: "Lab", periodsPerWeek: 3, staffId: "VD", isLab: true, priority: 1, title: "Data Science and Analytics Laboratory", staff: "Ms. Vidya", continuous: true, span: 3 },
+  { id: "ML_LAB", code: "ML LAB", shortName: "ML LAB", name: "Machine Learning Laboratory", type: "Lab", periodsPerWeek: 3, staffId: "PA", isLab: true, priority: 2, title: "Machine Learning Laboratory", staff: "Ms. P. Abirami", continuous: true, span: 3 },
+  { id: "CN_LAB", code: "CN LAB", shortName: "CN LAB", name: "Computer Networks Lab", type: "Lab", periodsPerWeek: 3, staffId: null, isLab: true, priority: 3, title: "Computer Networks Lab", staff: "", continuous: true, span: 3 },
+  { id: "ACTIVITY", code: "ACTIVITY", shortName: "ACTIVITY", name: "Department Activity Hour", type: "Activity", periodsPerWeek: 2, staffId: "ALL", isLab: false, priority: 0, title: "Department Activity Hour", staff: "All AI&DS Dept Staffs" },
+  { id: "PD", code: "PD", shortName: "PD", name: "Professional Development", type: "Activity", periodsPerWeek: 2, staffId: "VD", isLab: false, priority: 7, title: "Professional Development", staff: "Ms. Vidya" },
+  { id: "LIB", code: "LIB", shortName: "LIB", name: "Library / Skill Rack", type: "Activity", periodsPerWeek: 1, staffId: "VD", isLab: false, priority: 8, title: "Library / Skill Rack", staff: "Ms. Vidya" },
 ];
 
 // Sample staff data
-const sampleStaff = [
+const sampleStaff: Staff[] = [
   { id: "SR", name: "Ms. Sagaya Rebecca", email: "sagaya@velammal.edu", maxPeriods: 5 },
   { id: "SJ", name: "Ms. Sujitha", email: "sujitha@velammal.edu", maxPeriods: 6 },
   { id: "PA", name: "Ms. P. Abirami", email: "abirami@velammal.edu", maxPeriods: 6 },
   { id: "VD", name: "Ms. Vidya", email: "vidya@velammal.edu", maxPeriods: 7 },
   { id: "JX", name: "Mr. Justin Xavier", email: "justin@velammal.edu", maxPeriods: 5 },
   { id: "SK", name: "Mr. Siva Karthikeyan", email: "siva@velammal.edu", maxPeriods: 4 },
+  { id: "ALL", name: "All AI&DS Dept Staffs", email: "department@velammal.edu", maxPeriods: 10 },
+];
+
+// Default period timings
+const defaultPeriodTimings = [
+  "8:30-9:20",
+  "9:20-10:10", 
+  "10:10-11:00",
+  "11:15-12:00", // After tea break
+  "12:00-12:45",
+  "1:35-2:25",  // After lunch break
+  "2:25-3:15"
 ];
 
 const TimetableGenerator: React.FC = () => {
@@ -66,11 +87,12 @@ const TimetableGenerator: React.FC = () => {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
+  const [generatedTimetable, setGeneratedTimetable] = useState<TimeSlot[]>([]);
   
   // Calculate total periods selected
   const totalPeriodsSelected = selectedSubjects.reduce((total, subjectId) => {
     const subject = sampleSubjects.find(s => s.id === subjectId);
-    return total + (subject?.periods || 0);
+    return total + (subject?.periodsPerWeek || 0);
   }, 0);
 
   const handleSubjectToggle = (subjectId: string, checked: boolean) => {
@@ -93,15 +115,67 @@ const TimetableGenerator: React.FC = () => {
     
     setIsGenerating(true);
     
-    // Simulate API call/processing delay
+    // Prepare the subjects for generation
+    const subjectsToUse = sampleSubjects.filter(subject => selectedSubjects.includes(subject.id));
+    
+    // Prepare the timetable settings
+    const timetableSettings: TimetableSettings = {
+      periodsPerDay,
+      periodTimings: defaultPeriodTimings.slice(0, periodsPerDay),
+      breaks: [
+        ...(showTeaBreak ? [{ name: "Tea Break", after: 3 }] : []),
+        ...(showLunchBreak ? [{ name: "Lunch Break", after: 5 }] : []),
+      ],
+      hardConstraints,
+      softConstraints
+    };
+    
+    // Generate the timetable after a short delay to allow the UI to update
     setTimeout(() => {
-      setIsGenerating(false);
-      setGenerationComplete(true);
-      toast({
-        title: "Timetable Generated",
-        description: "The timetable draft has been successfully created",
-      });
-    }, 3000);
+      try {
+        // Generate the timetable using our algorithm
+        const timetable = generateTimetable(subjectsToUse, sampleStaff, timetableSettings);
+        
+        // Store the generated timetable
+        setGeneratedTimetable(timetable);
+        
+        // Save as a draft
+        const draft: TimetableDraft = {
+          id: `${year}_${dept}_${section}_draft`,
+          name: `${year} Year ${dept} Section ${section} Draft`,
+          year: year || '',
+          dept: dept || '',
+          section: section || '',
+          timeSlots: timetable,
+          lastUpdated: new Date()
+        };
+        
+        // In a real app, we would persist this draft
+        // For now, we'll just store it in localStorage for demo purposes
+        localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`, JSON.stringify(draft));
+        
+        // Convert to UI format and store for the timetable view
+        const uiTimetableData = convertToTimetableData(timetable, subjectsToUse, sampleStaff);
+        localStorage.setItem(`timetable_ui_${year}_${dept}_${section}`, JSON.stringify(uiTimetableData));
+        
+        setIsGenerating(false);
+        setGenerationComplete(true);
+        
+        toast({
+          title: "Timetable Generated",
+          description: "The timetable draft has been successfully created",
+        });
+      } catch (error) {
+        console.error("Error generating timetable:", error);
+        setIsGenerating(false);
+        
+        toast({
+          title: "Generation Failed",
+          description: "There was an error generating the timetable. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 2000);
   };
 
   // Function to handle view draft timetable button click
@@ -154,7 +228,7 @@ const TimetableGenerator: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sampleStaff.map(staff => (
+                {sampleStaff.filter(staff => staff.id !== "ALL").map(staff => (
                   <div key={staff.id} className="flex justify-between items-center p-3 border rounded-md">
                     <div>
                       <p className="font-medium">{staff.name}</p>
@@ -193,7 +267,7 @@ const TimetableGenerator: React.FC = () => {
                           </Label>
                           <div className="text-xs text-muted-foreground flex justify-between">
                             <span>{subject.staff || "Unassigned"}</span>
-                            <span>{subject.periods} periods</span>
+                            <span>{subject.periodsPerWeek} periods</span>
                           </div>
                         </div>
                       </div>
@@ -218,7 +292,7 @@ const TimetableGenerator: React.FC = () => {
                           </Label>
                           <div className="text-xs text-muted-foreground flex justify-between">
                             <span>{subject.staff || "Unassigned"}</span>
-                            <span>{subject.periods} periods (continuous)</span>
+                            <span>{subject.periodsPerWeek} periods (continuous)</span>
                           </div>
                         </div>
                       </div>
@@ -243,7 +317,7 @@ const TimetableGenerator: React.FC = () => {
                           </Label>
                           <div className="text-xs text-muted-foreground flex justify-between">
                             <span>{subject.staff || "Unassigned"}</span>
-                            <span>{subject.periods} periods</span>
+                            <span>{subject.periodsPerWeek} periods</span>
                           </div>
                         </div>
                       </div>
@@ -261,21 +335,21 @@ const TimetableGenerator: React.FC = () => {
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
                       const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Theory");
-                      return total + (subject?.periods || 0);
+                      return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
                   <div>Lab Sessions:</div>
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
                       const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Lab");
-                      return total + (subject?.periods || 0);
+                      return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
                   <div>Activities:</div>
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
                       const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Activity");
-                      return total + (subject?.periods || 0);
+                      return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
                 </div>
@@ -423,10 +497,7 @@ const TimetableGenerator: React.FC = () => {
               >
                 {isGenerating ? (
                   <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <Timer className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" />
                     Generating...
                   </div>
                 ) : (
@@ -471,20 +542,14 @@ const TimetableGenerator: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4 py-6">
-            <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent"></div>
+            <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
             <div className="text-center space-y-2">
               <p className="text-sm font-medium">Optimizing faculty schedules...</p>
               <p className="text-xs text-muted-foreground">Applying hard and soft constraints</p>
             </div>
           </div>
-          {/* We're using the default close button that comes with DialogContent */}
-          {/* If we want to hide it, we can add custom CSS instead of using hideClose */}
           <style>
-            {`
-              .radix-dialog-close-button {
-                display: none;
-              }
-            `}
+            {`.radix-dialog-close-button { display: none; }`}
           </style>
         </DialogContent>
       </Dialog>

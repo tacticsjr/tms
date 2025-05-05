@@ -17,6 +17,7 @@ import SectionDashboard from "@/pages/admin/SectionDashboard";
 import StaffManagement from "@/pages/admin/StaffManagement";
 import SubjectManagement from "@/pages/admin/SubjectManagement";
 import TimetableGenerator from "@/pages/admin/TimetableGenerator";
+import TimetableView from "@/pages/admin/TimetableView";
 import Settings from "@/pages/admin/Settings";
 import NotFound from "@/pages/NotFound";
 
@@ -51,6 +52,7 @@ const App = () => (
               
               {/* Timetable related */}
               <Route path="timetables/:year/:dept/:section" element={<TimetableGenerator />} />
+              <Route path="timetables/:year/:dept/:section/draft" element={<TimetableView />} />
               
               {/* Settings */}
               <Route path="settings" element={<Settings />} />

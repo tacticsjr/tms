@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +45,7 @@ const sampleStaff = [
 const TimetableGenerator: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [periodsPerDay, setPeriodsPerDay] = useState<number>(7);
@@ -102,6 +102,16 @@ const TimetableGenerator: React.FC = () => {
         description: "The timetable draft has been successfully created",
       });
     }, 3000);
+  };
+
+  // Function to handle view draft timetable button click
+  const handleViewDraft = () => {
+    toast({
+      title: "Redirecting",
+      description: "Taking you to the draft timetable editor",
+    });
+    // Navigate to the timetable view page
+    navigate(`/admin/timetables/${year}/${dept}/${section}/draft`);
   };
   
   return (
@@ -441,13 +451,7 @@ const TimetableGenerator: React.FC = () => {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: "Redirecting",
-                      description: "Taking you to the draft timetable editor",
-                    });
-                    // This would normally navigate to the timetable editor
-                  }}
+                  onClick={handleViewDraft}
                 >
                   View Draft Timetable
                 </Button>

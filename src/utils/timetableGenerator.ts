@@ -1,4 +1,12 @@
-import { Subject, Staff, TimeSlot, TimetableSettings } from "../types/timetable";
+import { 
+  Subject, 
+  Staff, 
+  TimeSlot, 
+  TimetableSettings, 
+  TimetableDraft,
+  ConflictInfo,
+  TimetableData
+} from "../types/timetable";
 
 export const generateTimetable = (
   subjects: Subject[],

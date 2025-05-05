@@ -55,14 +55,18 @@ export interface TimeSlot {
   locked?: boolean;
 }
 
+// Define TimetableEntry type for the UI representation
+export interface TimetableEntry {
+  subject: string;
+  title: string;
+  staff: string;
+  continuous?: boolean;
+  span?: number;
+}
+
+// TimetableData type for the UI representation
 export interface TimetableData {
-  [key: string]: {
-    subject: string;
-    title: string;
-    staff: string;
-    continuous?: boolean;
-    span?: number;
-  }[];
+  [key: string]: TimetableEntry[];
 }
 
 export interface TimetableDraft {

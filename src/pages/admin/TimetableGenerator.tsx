@@ -475,11 +475,13 @@ const TimetableGenerator: React.FC = () => {
           </div>
           {/* We're using the default close button that comes with DialogContent */}
           {/* If we want to hide it, we can add custom CSS instead of using hideClose */}
-          <style jsx>{`
-            .radix-dialog-close-button {
-              display: none;
-            }
-          `}</style>
+          <style>
+            {`
+              .radix-dialog-close-button {
+                display: none;
+              }
+            `}
+          </style>
         </DialogContent>
       </Dialog>
     </div>

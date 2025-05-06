@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { RecentUpdate } from "@/types/timetable";
-import { Clock, AlertTriangle, Pencil, Book, Bell, Save } from "lucide-react";
+import { Clock, AlertTriangle, Pencil, Book, Bell, Save, FileCheck } from "lucide-react";
 
 interface RecentUpdatesSectionProps {
   updates: RecentUpdate[];
@@ -59,7 +59,11 @@ const RecentUpdatesSection: React.FC<RecentUpdatesSectionProps> = ({ updates }) 
           
           <div>
             {update.type === 'substitution' && <Badge variant="destructive">Substitution</Badge>}
-            {update.type === 'timetable' && <Badge variant="outline" className="text-blue-500 border-blue-500">Timetable</Badge>}
+            {update.type === 'timetable' && (
+              update.message.toLowerCase().includes("master") ? 
+                <Badge className="bg-green-500">Master</Badge> : 
+                <Badge variant="outline" className="text-blue-500 border-blue-500">Timetable</Badge>
+            )}
             {update.type === 'staff' && <Badge className="bg-blue-500">Staff</Badge>}
             {update.type === 'subject' && <Badge className="bg-purple-500">Subject</Badge>}
             {update.type === 'notification' && <Badge className="bg-yellow-500">Notification</Badge>}

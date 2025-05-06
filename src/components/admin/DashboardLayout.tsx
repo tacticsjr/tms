@@ -17,7 +17,6 @@ const DashboardLayout: React.FC = () => {
     
     if (pathParts.length >= 2) {
       const section = pathParts[pathParts.length - 1];
-      const resource = pathParts[pathParts.length - 2];
       
       // If we're in a section specific route
       if (pathParts.length >= 5 && pathParts[1] === "dashboard") {
@@ -35,6 +34,10 @@ const DashboardLayout: React.FC = () => {
         }
       } else if (pathParts.includes("master")) {
         title = "Master Timetable";
+      } else if (pathParts.includes("substitutions")) {
+        title = "Substitution Management";
+      } else if (pathParts.includes("notifications")) {
+        title = "Notification Management";
       }
     }
     

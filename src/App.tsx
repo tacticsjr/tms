@@ -18,6 +18,9 @@ import StaffManagement from "@/pages/admin/StaffManagement";
 import SubjectManagement from "@/pages/admin/SubjectManagement";
 import TimetableGenerator from "@/pages/admin/TimetableGenerator";
 import TimetableView from "@/pages/admin/TimetableView";
+import MasterTimetable from "@/pages/admin/MasterTimetable";
+import SubstitutionManagement from "@/pages/admin/SubstitutionManagement";
+import NotificationManagement from "@/pages/admin/NotificationManagement";
 import Settings from "@/pages/admin/Settings";
 import NotFound from "@/pages/NotFound";
 
@@ -53,6 +56,15 @@ const App = () => (
               {/* Timetable related */}
               <Route path="timetables/:year/:dept/:section" element={<TimetableGenerator />} />
               <Route path="timetables/:year/:dept/:section/draft" element={<TimetableView />} />
+              
+              {/* Master timetable */}
+              <Route path="master/:year/:dept/:section" element={<MasterTimetable />} />
+              
+              {/* Substitutions */}
+              <Route path="substitutions/:year/:dept/:section" element={<SubstitutionManagement />} />
+              
+              {/* Notifications */}
+              <Route path="notifications/:year/:dept/:section" element={<NotificationManagement />} />
               
               {/* Settings */}
               <Route path="settings" element={<Settings />} />

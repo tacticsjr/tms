@@ -1,3 +1,4 @@
+
 import { 
   Subject, 
   Staff, 
@@ -5,7 +6,8 @@ import {
   TimetableSettings, 
   TimetableDraft,
   ConflictInfo,
-  TimetableData
+  TimetableData,
+  TimetableEntry
 } from "../types/timetable";
 
 export const generateTimetable = (

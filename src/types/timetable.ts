@@ -53,6 +53,8 @@ export interface TimeSlot {
   isBreak?: boolean;
   breakName?: string;
   locked?: boolean;
+  absent?: boolean;
+  reminderSent?: boolean;
 }
 
 // Define TimetableEntry type for the UI representation
@@ -102,4 +104,21 @@ export interface DepartmentTimetable {
   masterProposal?: TimeSlot[];
   status: TimetableStatus;
   lastUpdated: Date;
+}
+
+// New interfaces for substitution system
+export interface Substitution {
+  id: string;
+  slotId: string;
+  originalTeacherId: string;
+  substituteTeacherId: string;
+  createdAt: Date;
+}
+
+export interface Notification {
+  id: string;
+  type: 'substitution' | 'reminder' | 'announcement';
+  recipientId: string;
+  payload: any;
+  sentAt?: Date;
 }

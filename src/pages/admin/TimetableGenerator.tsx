@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
+import {
   Subject,
   Staff,
   TimetableSettings,
@@ -24,57 +24,248 @@ import {
 } from "@/types/timetable";
 import { generateTimetable, convertToTimetableData } from "@/utils/timetableGenerator";
 import { Timer } from "lucide-react";
-
+ 
 // Sample subject data
-const sampleSubjects: Subject[] = [
-  { id: "PAS", code: "PAS", shortName: "PAS", name: "Probability and Statistics", type: "Theory", periodsPerWeek: 5, staffId: "SR", isLab: false, priority: 2, title: "Probability and Statistics", staff: "Ms. Sagaya Rebecca" },
-  { id: "OS", code: "OS", shortName: "OS", name: "Operating Systems", type: "Theory", periodsPerWeek: 6, staffId: "SJ", isLab: false, priority: 1, title: "Operating Systems", staff: "Ms. Sujitha" },
-  { id: "ML", code: "ML", shortName: "ML", name: "Machine Learning", type: "Theory", periodsPerWeek: 5, staffId: "PA", isLab: false, priority: 3, title: "Machine Learning", staff: "Ms. P. Abirami" },
-  { id: "FDSA", code: "FDSA", shortName: "FDSA", name: "Fundamentals of Data Science and Analytics", type: "Theory", periodsPerWeek: 5, staffId: "VD", isLab: false, priority: 4, title: "Fundamentals of Data Science and Analytics", staff: "Ms. Vidya" },
-  { id: "CN", code: "CN", shortName: "CN", name: "Computer Networks", type: "Theory", periodsPerWeek: 6, staffId: "JX", isLab: false, priority: 5, title: "Computer Networks", staff: "Mr. Justin Xavier" },
-  { id: "EVS", code: "EVS", shortName: "EVS", name: "Environmental Sciences and Sustainability", type: "Theory", periodsPerWeek: 4, staffId: "SK", isLab: false, priority: 6, title: "Environmental Sciences and Sustainability", staff: "Mr. Siva Karthikeyan" },
-  { id: "FDSA_LAB", code: "FDSA LAB", shortName: "FDSA LAB", name: "Data Science and Analytics Laboratory", type: "Lab", periodsPerWeek: 3, staffId: "VD", isLab: true, priority: 1, title: "Data Science and Analytics Laboratory", staff: "Ms. Vidya", continuous: true, span: 3 },
-  { id: "ML_LAB", code: "ML LAB", shortName: "ML LAB", name: "Machine Learning Laboratory", type: "Lab", periodsPerWeek: 3, staffId: "PA", isLab: true, priority: 2, title: "Machine Learning Laboratory", staff: "Ms. P. Abirami", continuous: true, span: 3 },
-  { id: "CN_LAB", code: "CN LAB", shortName: "CN LAB", name: "Computer Networks Lab", type: "Lab", periodsPerWeek: 3, staffId: null, isLab: true, priority: 3, title: "Computer Networks Lab", staff: "", continuous: true, span: 3 },
-  { id: "ACTIVITY", code: "ACTIVITY", shortName: "ACTIVITY", name: "Department Activity Hour", type: "Activity", periodsPerWeek: 2, staffId: "ALL", isLab: false, priority: 0, title: "Department Activity Hour", staff: "All AI&DS Dept Staffs" },
-  { id: "PD", code: "PD", shortName: "PD", name: "Professional Development", type: "Activity", periodsPerWeek: 2, staffId: "VD", isLab: false, priority: 7, title: "Professional Development", staff: "Ms. Vidya" },
-  { id: "LIB", code: "LIB", shortName: "LIB", name: "Library / Skill Rack", type: "Activity", periodsPerWeek: 1, staffId: "VD", isLab: false, priority: 8, title: "Library / Skill Rack", staff: "Ms. Vidya" },
+export const staffData: Staff[] = [
+  {
+    id: "1",
+    name: "Sagaya Rebecca",
+    email: "sagaya@velammal.edu",
+    maxPeriods: 5
+  },
+  {
+    id: "2",
+    name: "Sujitha",
+    email: "sujitha@velammal.edu", 
+    maxPeriods: 6
+  },
+  {
+    id: "3",
+    name: "P. Abirami",
+    email: "abirami@velammal.edu", 
+    maxPeriods: 6
+  },
+  {
+    id: "4",
+    name: "Vidya",
+    email: "vidya@velammal.edu",
+    maxPeriods: 7
+  },
+  {
+    id: "5",
+    name: "Justin Xavier",
+    email: "justin@velammal.edu",
+    maxPeriods: 5
+  },
+  {
+    id: "6",
+    name: "Siva Karthikeyan",
+    email: "siva@velammal.edu",
+    maxPeriods: 4
+  },
 ];
-
-// Sample staff data
-const sampleStaff: Staff[] = [
-  { id: "SR", name: "Ms. Sagaya Rebecca", email: "sagaya@velammal.edu", maxPeriods: 5 },
-  { id: "SJ", name: "Ms. Sujitha", email: "sujitha@velammal.edu", maxPeriods: 6 },
-  { id: "PA", name: "Ms. P. Abirami", email: "abirami@velammal.edu", maxPeriods: 6 },
-  { id: "VD", name: "Ms. Vidya", email: "vidya@velammal.edu", maxPeriods: 7 },
-  { id: "JX", name: "Mr. Justin Xavier", email: "justin@velammal.edu", maxPeriods: 5 },
-  { id: "SK", name: "Mr. Siva Karthikeyan", email: "siva@velammal.edu", maxPeriods: 4 },
-  { id: "ALL", name: "All AI&DS Dept Staffs", email: "department@velammal.edu", maxPeriods: 10 },
+ 
+export const subjectData: Subject[] = [
+  {
+    id: "1",
+    code: "MA8402",
+    name: "Probability and Statistics",
+    title: "Probability and Statistics",
+    staff: "Ms. Sagaya Rebecca",
+    shortName: "PAS",
+    type: "Theory",
+    periodsPerWeek: 5,
+    isLab: false,
+    staffId: "1",
+    priority: 1,
+  },
+  {
+    id: "2",
+    code: "CS8491",
+    name: "Operating Systems",
+    shortName: "OS",
+    periodsPerWeek: 4,
+    isLab: false,
+    staffId: "2",
+    type: "Theory",
+    priority: 1, 
+    title: "Operating Systems", 
+    staff: "Ms. Sujitha"
+  },
+  {
+    id: "3",
+    code: "CS8491",
+    name: "Machine Learning",
+    shortName: "ML",
+    type: "Theory",
+    periodsPerWeek: 5,
+    title: "Machine Learning", 
+    staff: "Ms. P. Abirami",
+    isLab: false,
+    staffId: "3",
+    priority: 1,
+  },
+  {
+    id: "4",
+    code: "AD8401",
+    name: "Fundamentals of Data Science and Analytics",
+    shortName: "FDSA",
+    periodsPerWeek: 5,
+    type: "Theory",
+    isLab: false,
+    staffId: "4",
+    priority: 1,
+    title: "Fundamentals of Data Science and Analytics", 
+    staff: "Ms. Vidya"
+  },
+  {
+    id: "5",
+    code: "CS8591",
+    name: "Computer Networks",
+    shortName: "CN",
+    periodsPerWeek: 4,
+    type: "Theory",
+    isLab: false,
+    staffId: "5",
+    priority: 1, 
+    title: "Computer Networks", 
+    staff: "Mr. Justin Xavier"
+  },
+  {
+    id: "6",
+    code: "GE8561",
+    name: "Environmental Sciences and Sustainability",
+    shortName: "EVS",
+    periodsPerWeek: 4,
+    type: "Theory",
+    isLab: false,
+    staffId: "6",
+    priority: 2,
+    title: "Environmental Sciences and Sustainability", 
+    staff: "Mr. Siva Karthikeyan"
+  },
+  {
+    id: "7",
+    code: "AD8411",
+    name: "Data Science and Analytics Laboratory",
+    shortName: "FDSA LAB",
+    periodsPerWeek: 3,
+    isLab: true,
+    type: "Lab",
+    staffId: "4",
+    priority: 3, 
+    title: "Data Science and Analytics Laboratory", 
+    staff: "Ms. Vidya", 
+    continuous: true, 
+    span: 3
+  },
+  {
+    id: "8",
+    code: "CS8581",
+    name: "Machine Learning Laboratory",
+    shortName: "ML LAB",
+    periodsPerWeek: 3,
+    type: "Lab",
+    isLab: true,
+    staffId: "3",
+    priority: 3,
+    title: "Machine Learning Laboratory", 
+    staff: "Ms. P. Abirami", 
+    continuous: true, 
+    span: 3
+  },
+  {
+    id: "9",
+    code: "CS8581",
+    name: "Computer Networks Laboratory",
+    shortName: "CN LAB",
+    type: "Lab",
+    periodsPerWeek: 2,
+    isLab: true,
+    staffId: "5",
+    priority: 3,
+    title: "Computer Networks Lab", 
+    staff: "", 
+    continuous: true, 
+    span: 3
+  },
+  {
+    id: "10",
+    code: "AD8071",
+    name: "Department Activity Hour",
+    shortName: "ACTIVITY",
+    periodsPerWeek: 2, 
+    type: "Activity",
+    isLab: false,
+    staffId: "4",
+    priority: 4,
+    title: "Department Activity Hour", 
+    staff: "All AI&DS Dept Staffs"
+  },
+  {
+    id: "11",
+    code: "HS8581",
+    name: "Professional Development",
+    shortName: "PD",
+    periodsPerWeek: 2,
+    isLab: false, 
+    type: "Activity",
+    staffId: "4",
+    priority: 2,
+    title: "Professional Development", 
+    staff: "Ms. Vidya"
+  },
+  {
+    id: "12",
+    code: "LIB1001",
+    name: "Library / Skill Rack",
+    shortName: "LIB/SKILL RACK", 
+    type: "Activity",
+    periodsPerWeek: 1,
+    isLab: false,
+    staffId: "4",
+    priority: 5, 
+    title: "Library / Skill Rack", 
+    staff: "Ms. Vidya"
+  },
+  {
+    id: "13",
+    code: "AL3452",
+    name: "Operating System Laboratory",
+    shortName: "OS LAB",
+    periodsPerWeek: 2,
+    type: "Lab",
+    isLab: true,
+    staffId: "4",
+    priority: 5,
+    title: "Operating System Laboratory",
+    staff: "Ms. Sujitha"
+  },
 ];
-
+ 
 // Default period timings
 const defaultPeriodTimings = [
   "8:30-9:20",
-  "9:20-10:10", 
+  "9:20-10:10",
   "10:10-11:00",
   "11:15-12:00", // After tea break
   "12:00-12:45",
   "1:35-2:25",  // After lunch break
   "2:25-3:15"
 ];
-
+ 
 const TimetableGenerator: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+ 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [periodsPerDay, setPeriodsPerDay] = useState<number>(7);
   const [showTeaBreak, setShowTeaBreak] = useState<boolean>(true);
   const [showLunchBreak, setShowLunchBreak] = useState<boolean>(true);
   const [hardConstraints, setHardConstraints] = useState({
     noTeacherOverlap: true,
-    exactSubjectCounts: true, 
+    exactSubjectCounts: true,
     preserveLockedSlots: true
   });
   const [softConstraints, setSoftConstraints] = useState({
@@ -84,17 +275,17 @@ const TimetableGenerator: React.FC = () => {
     teacherPreferences: false,
     requireBackupTeacher: false
   });
-  
+ 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [generatedTimetable, setGeneratedTimetable] = useState<TimeSlot[]>([]);
-  
+ 
   // Calculate total periods selected
   const totalPeriodsSelected = selectedSubjects.reduce((total, subjectId) => {
-    const subject = sampleSubjects.find(s => s.id === subjectId);
+    const subject = subjectData.find(s => s.id === subjectId);
     return total + (subject?.periodsPerWeek || 0);
   }, 0);
-
+ 
   const handleSubjectToggle = (subjectId: string, checked: boolean) => {
     if (checked) {
       setSelectedSubjects(prev => [...prev, subjectId]);
@@ -102,7 +293,7 @@ const TimetableGenerator: React.FC = () => {
       setSelectedSubjects(prev => prev.filter(id => id !== subjectId));
     }
   };
-
+ 
   const handleGenerate = () => {
     if (selectedSubjects.length === 0) {
       toast({
@@ -112,12 +303,12 @@ const TimetableGenerator: React.FC = () => {
       });
       return;
     }
-    
+   
     setIsGenerating(true);
-    
+   
     // Prepare the subjects for generation
-    const subjectsToUse = sampleSubjects.filter(subject => selectedSubjects.includes(subject.id));
-    
+    const subjectsToUse = subjectData.filter(subject => selectedSubjects.includes(subject.id));
+   
     // Prepare the timetable settings
     const timetableSettings: TimetableSettings = {
       periodsPerDay,
@@ -129,16 +320,16 @@ const TimetableGenerator: React.FC = () => {
       hardConstraints,
       softConstraints
     };
-    
+   
     // Generate the timetable after a short delay to allow the UI to update
     setTimeout(() => {
       try {
         // Generate the timetable using our algorithm
-        const timetable = generateTimetable(subjectsToUse, sampleStaff, timetableSettings);
-        
+        const timetable = generateTimetable(subjectsToUse, staffData, timetableSettings);
+       
         // Store the generated timetable
         setGeneratedTimetable(timetable);
-        
+       
         // Save as a draft
         const draft: TimetableDraft = {
           id: `${year}_${dept}_${section}_draft`,
@@ -149,18 +340,18 @@ const TimetableGenerator: React.FC = () => {
           timeSlots: timetable,
           lastUpdated: new Date()
         };
-        
+       
         // In a real app, we would persist this draft
         // For now, we'll just store it in localStorage for demo purposes
         localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`, JSON.stringify(draft));
-        
+       
         // Convert to UI format and store for the timetable view
-        const uiTimetableData = convertToTimetableData(timetable, subjectsToUse, sampleStaff);
+        const uiTimetableData = convertToTimetableData(timetable, subjectsToUse, staffData);
         localStorage.setItem(`timetable_ui_${year}_${dept}_${section}`, JSON.stringify(uiTimetableData));
-        
+       
         setIsGenerating(false);
         setGenerationComplete(true);
-        
+       
         toast({
           title: "Timetable Generated",
           description: "The timetable draft has been successfully created",
@@ -168,7 +359,7 @@ const TimetableGenerator: React.FC = () => {
       } catch (error) {
         console.error("Error generating timetable:", error);
         setIsGenerating(false);
-        
+       
         toast({
           title: "Generation Failed",
           description: "There was an error generating the timetable. Please try again.",
@@ -177,7 +368,7 @@ const TimetableGenerator: React.FC = () => {
       }
     }, 2000);
   };
-
+ 
   // Function to handle view draft timetable button click
   const handleViewDraft = () => {
     toast({
@@ -187,7 +378,7 @@ const TimetableGenerator: React.FC = () => {
     // Navigate to the timetable view page
     navigate(`/admin/timetables/${year}/${dept}/${section}/draft`);
   };
-  
+ 
   return (
     <div className="space-y-6">
       <div>
@@ -210,7 +401,7 @@ const TimetableGenerator: React.FC = () => {
           <span className="text-muted-foreground">/</span>
           <span>Timetables</span>
         </div>
-        
+       
         <h2 className="text-3xl font-bold tracking-tight mt-2">
           Generate Timetable
         </h2>
@@ -218,7 +409,7 @@ const TimetableGenerator: React.FC = () => {
           {year} Year {dept} - Section {section}
         </p>
       </div>
-
+ 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
           <Card>
@@ -228,7 +419,7 @@ const TimetableGenerator: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sampleStaff.filter(staff => staff.id !== "ALL").map(staff => (
+                {staffData.filter(staff => staff.id !== "ALL").map(staff => (
                   <div key={staff.id} className="flex justify-between items-center p-3 border rounded-md">
                     <div>
                       <p className="font-medium">{staff.name}</p>
@@ -242,7 +433,7 @@ const TimetableGenerator: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-
+ 
           <Card>
             <CardHeader>
               <CardTitle>Select Subjects</CardTitle>
@@ -252,13 +443,13 @@ const TimetableGenerator: React.FC = () => {
               <div className="space-y-4">
                 <h3 className="font-medium text-sm">Theory Subjects</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sampleSubjects
+                  {subjectData
                     .filter(subject => subject.type === "Theory")
                     .map(subject => (
                       <div key={subject.id} className="flex items-center space-x-2 border rounded-md p-3">
-                        <Checkbox 
-                          id={subject.id} 
-                          checked={selectedSubjects.includes(subject.id)} 
+                        <Checkbox
+                          id={subject.id}
+                          checked={selectedSubjects.includes(subject.id)}
                           onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
                         />
                         <div className="grid gap-0.5">
@@ -274,16 +465,16 @@ const TimetableGenerator: React.FC = () => {
                     ))
                   }
                 </div>
-
+ 
                 <h3 className="font-medium text-sm mt-6">Lab Sessions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sampleSubjects
+                  {subjectData
                     .filter(subject => subject.type === "Lab")
                     .map(subject => (
                       <div key={subject.id} className="flex items-center space-x-2 border rounded-md p-3">
-                        <Checkbox 
-                          id={subject.id} 
-                          checked={selectedSubjects.includes(subject.id)} 
+                        <Checkbox
+                          id={subject.id}
+                          checked={selectedSubjects.includes(subject.id)}
                           onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
                         />
                         <div className="grid gap-0.5 w-full">
@@ -299,16 +490,16 @@ const TimetableGenerator: React.FC = () => {
                     ))
                   }
                 </div>
-
+ 
                 <h3 className="font-medium text-sm mt-6">Activities</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sampleSubjects
+                  {subjectData
                     .filter(subject => subject.type === "Activity")
                     .map(subject => (
                       <div key={subject.id} className="flex items-center space-x-2 border rounded-md p-3">
-                        <Checkbox 
-                          id={subject.id} 
-                          checked={selectedSubjects.includes(subject.id)} 
+                        <Checkbox
+                          id={subject.id}
+                          checked={selectedSubjects.includes(subject.id)}
                           onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
                         />
                         <div className="grid gap-0.5">
@@ -325,7 +516,7 @@ const TimetableGenerator: React.FC = () => {
                   }
                 </div>
               </div>
-
+ 
               <div className="mt-6 p-4 bg-muted/50 rounded-md">
                 <h3 className="font-medium">Weekly Summary</h3>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -334,21 +525,21 @@ const TimetableGenerator: React.FC = () => {
                   <div>Theory:</div>
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
-                      const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Theory");
+                      const subject = subjectData.find(s => s.id === subjectId && s.type === "Theory");
                       return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
                   <div>Lab Sessions:</div>
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
-                      const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Lab");
+                      const subject = subjectData.find(s => s.id === subjectId && s.type === "Lab");
                       return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
                   <div>Activities:</div>
                   <div className="font-medium">
                     {selectedSubjects.reduce((total, subjectId) => {
-                      const subject = sampleSubjects.find(s => s.id === subjectId && s.type === "Activity");
+                      const subject = subjectData.find(s => s.id === subjectId && s.type === "Activity");
                       return total + (subject?.periodsPerWeek || 0);
                     }, 0)} periods
                   </div>
@@ -357,7 +548,7 @@ const TimetableGenerator: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
+ 
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -367,122 +558,122 @@ const TimetableGenerator: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="periodsPerDay">Periods Per Day</Label>
-                <Input 
-                  id="periodsPerDay" 
-                  type="number" 
-                  min={1} 
+                <Input
+                  id="periodsPerDay"
+                  type="number"
+                  min={1}
                   max={10}
                   value={periodsPerDay}
                   onChange={(e) => setPeriodsPerDay(Number(e.target.value))}
                 />
               </div>
-              
+             
               <div className="space-y-2">
                 <Label>Break Slots</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="teaBreak" 
-                    checked={showTeaBreak} 
-                    onCheckedChange={setShowTeaBreak} 
+                  <Switch
+                    id="teaBreak"
+                    checked={showTeaBreak}
+                    onCheckedChange={setShowTeaBreak}
                   />
                   <Label htmlFor="teaBreak">Tea Break (after P3)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="lunchBreak" 
-                    checked={showLunchBreak} 
-                    onCheckedChange={setShowLunchBreak} 
+                  <Switch
+                    id="lunchBreak"
+                    checked={showLunchBreak}
+                    onCheckedChange={setShowLunchBreak}
                   />
                   <Label htmlFor="lunchBreak">Lunch Break (after P5)</Label>
                 </div>
               </div>
-              
+             
               <div className="space-y-2">
                 <Label>Hard Constraints</Label>
                 <div className="space-y-1.5">
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="noTeacherOverlap" 
-                      checked={hardConstraints.noTeacherOverlap} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="noTeacherOverlap"
+                      checked={hardConstraints.noTeacherOverlap}
+                      onCheckedChange={(checked) =>
                         setHardConstraints({...hardConstraints, noTeacherOverlap: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="noTeacherOverlap">No teacher overlap</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="exactSubjectCounts" 
-                      checked={hardConstraints.exactSubjectCounts} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="exactSubjectCounts"
+                      checked={hardConstraints.exactSubjectCounts}
+                      onCheckedChange={(checked) =>
                         setHardConstraints({...hardConstraints, exactSubjectCounts: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="exactSubjectCounts">Exact subject counts</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="preserveLockedSlots" 
-                      checked={hardConstraints.preserveLockedSlots} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="preserveLockedSlots"
+                      checked={hardConstraints.preserveLockedSlots}
+                      onCheckedChange={(checked) =>
                         setHardConstraints({...hardConstraints, preserveLockedSlots: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="preserveLockedSlots">Preserve locked slots</Label>
                   </div>
                 </div>
               </div>
-              
+             
               <div className="space-y-2">
                 <Label>Soft Constraints</Label>
                 <div className="space-y-1.5">
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="loadBalancing" 
-                      checked={softConstraints.loadBalancing} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="loadBalancing"
+                      checked={softConstraints.loadBalancing}
+                      onCheckedChange={(checked) =>
                         setSoftConstraints({...softConstraints, loadBalancing: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="loadBalancing">Load balancing</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="priorityScheduling" 
-                      checked={softConstraints.priorityScheduling} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="priorityScheduling"
+                      checked={softConstraints.priorityScheduling}
+                      onCheckedChange={(checked) =>
                         setSoftConstraints({...softConstraints, priorityScheduling: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="priorityScheduling">Priority scheduling</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="labClustering" 
-                      checked={softConstraints.labClustering} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="labClustering"
+                      checked={softConstraints.labClustering}
+                      onCheckedChange={(checked) =>
                         setSoftConstraints({...softConstraints, labClustering: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="labClustering">Lab clustering</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="teacherPreferences" 
-                      checked={softConstraints.teacherPreferences} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="teacherPreferences"
+                      checked={softConstraints.teacherPreferences}
+                      onCheckedChange={(checked) =>
                         setSoftConstraints({...softConstraints, teacherPreferences: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="teacherPreferences">Teacher time preferences</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="requireBackupTeacher" 
-                      checked={softConstraints.requireBackupTeacher} 
-                      onCheckedChange={(checked) => 
+                    <Switch
+                      id="requireBackupTeacher"
+                      checked={softConstraints.requireBackupTeacher}
+                      onCheckedChange={(checked) =>
                         setSoftConstraints({...softConstraints, requireBackupTeacher: checked})
-                      } 
+                      }
                     />
                     <Label htmlFor="requireBackupTeacher">Backup teacher requirement</Label>
                   </div>
@@ -506,7 +697,7 @@ const TimetableGenerator: React.FC = () => {
               </Button>
             </CardFooter>
           </Card>
-          
+         
           {generationComplete && (
             <Card>
               <CardHeader className="pb-2">
@@ -531,7 +722,7 @@ const TimetableGenerator: React.FC = () => {
           )}
         </div>
       </div>
-
+ 
       {/* AI generation dialog */}
       <Dialog open={isGenerating}>
         <DialogContent className="sm:max-w-md">
@@ -556,5 +747,5 @@ const TimetableGenerator: React.FC = () => {
     </div>
   );
 };
-
+ 
 export default TimetableGenerator;

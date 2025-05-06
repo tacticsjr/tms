@@ -1,12 +1,41 @@
 
-import React from "react";
-import { Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminHeader from "./AdminHeader";
 import AdminSidebar from "./AdminSidebar";
 
 const DashboardLayout: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const [pageTitle, setPageTitle] = useState("");
+  
+  // Set page title based on current route
+  useEffect(() => {
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    let title = "Dashboard";
+    
+    if (pathParts.length >= 2) {
+      const section = pathParts[pathParts.length - 1];
+      const resource = pathParts[pathParts.length - 2];
+      
+      // If we're in a section specific route
+      if (pathParts.length >= 5 && pathParts[1] === "dashboard") {
+        title = `Section ${section} Dashboard`;
+      } else if (pathParts.includes("staff")) {
+        title = "Staff Management";
+      } else if (pathParts.includes("subjects")) {
+        title = "Subject Management";
+      } else if (pathParts.includes("timetables")) {
+        title = "Timetable Generator";
+      } else if (pathParts.includes("master")) {
+        title = "Master Timetable";
+      }
+    }
+    
+    // Set the document title
+    document.title = `${title} | Timetable Manager`;
+  }, [location]);
   
   return (
     <div className="flex h-screen bg-muted/30">

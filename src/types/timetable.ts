@@ -20,6 +20,7 @@ export interface Staff {
   name: string;
   email?: string;
   maxPeriods?: number;
+  subjects?: string[]; // List of subject codes this staff teaches
 }
 
 export interface BreakInfo {
@@ -113,6 +114,11 @@ export interface Substitution {
   originalTeacherId: string;
   substituteTeacherId: string;
   createdAt: Date;
+  day: string;
+  period: number;
+  section: string;
+  dept: string;
+  year: string;
 }
 
 export interface Notification {
@@ -121,4 +127,45 @@ export interface Notification {
   recipientId: string;
   payload: any;
   sentAt?: Date;
+  read?: boolean;
 }
+
+// New interfaces for app state
+export interface RecentUpdate {
+  id: string;
+  time: Date;
+  message: string;
+  type: 'substitution' | 'timetable' | 'staff' | 'subject' | 'notification';
+  relatedId?: string;
+}
+
+export interface AppState {
+  staffList: Staff[];
+  subjectList: Subject[];
+  timetables: Record<string, {
+    status: TimetableStatus;
+    grid: TimetableData;
+  }>;
+  masterCards: Array<{
+    sectionKey: string;
+    year: string;
+    dept: string;
+    section: string;
+    createdAt: Date;
+    lastEdited: Date;
+    status: 'Confirmed' | 'Pending';
+    grid: TimetableData;
+  }>;
+  recentUpdates: RecentUpdate[];
+  substitutions: Substitution[];
+  notifications: Notification[];
+  history: {
+    undoStack: any[];
+    redoStack: any[];
+  };
+}
+
+// Helper function to create a section key
+export const createSectionKey = (year: string, dept: string, section: string): string => {
+  return `${year}-${dept}-${section}`;
+};

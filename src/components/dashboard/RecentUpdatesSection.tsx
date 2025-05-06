@@ -54,7 +54,7 @@ const RecentUpdatesSection: React.FC<RecentUpdatesSectionProps> = ({ updates }) 
           
           <div className="flex-1">
             <p className="text-sm">{update.message}</p>
-            <p className="text-xs text-muted-foreground">{getTimeAgo(update.time)}</p>
+            <p className="text-xs text-muted-foreground">{getTimeAgo(new Date(update.time))}</p>
           </div>
           
           <div>

@@ -12,6 +12,7 @@ const MasterTimetable: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     if (year && dept && section) {
@@ -24,8 +25,50 @@ const MasterTimetable: React.FC = () => {
           console.error("Failed to parse app state:", error);
         }
       }
+      setIsLoading(false);
     }
   }, [year, dept, section]);
+
+  // Also check for the timetable UI data directly
+  useEffect(() => {
+    if (!appState && year && dept && section) {
+      // Try to get the timetable UI data directly
+      const timetableUIKey = `timetable_ui_${year}_${dept}_${section}`;
+      const storedTimetableUI = localStorage.getItem(timetableUIKey);
+      
+      if (storedTimetableUI) {
+        try {
+          // If we found timetable UI data but no app state, create a minimal app state
+          const timetableGrid = JSON.parse(storedTimetableUI);
+          const sectionKey = createSectionKey(year, dept, section);
+          
+          const minimalAppState: AppState = {
+            staffList: [],
+            subjectList: [],
+            timetables: {
+              [sectionKey]: {
+                status: TimetableStatus.Draft,
+                grid: timetableGrid
+              }
+            },
+            masterCards: [],
+            recentUpdates: [],
+            substitutions: [],
+            notifications: [],
+            history: {
+              undoStack: [],
+              redoStack: []
+            }
+          };
+          
+          setAppState(minimalAppState);
+        } catch (error) {
+          console.error("Failed to parse timetable UI data:", error);
+        }
+      }
+      setIsLoading(false);
+    }
+  }, [appState, year, dept, section]);
 
   const handleConfirmMaster = () => {
     if (!appState || !year || !dept || !section) return;
@@ -93,18 +136,32 @@ const MasterTimetable: React.FC = () => {
     });
   };
 
-  if (!appState) {
+  if (isLoading) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
   const sectionKey = createSectionKey(year || '', dept || '', section || '');
-  const currentTimetable = appState.timetables[sectionKey];
-  const isTimetableAvailable = currentTimetable && Object.keys(currentTimetable.grid).length > 0;
+  
+  // Check both the appState and directly in localStorage for the timetable data
+  const currentTimetable = appState?.timetables[sectionKey];
+  
+  // Check if we have timetable data either in appState or directly from localStorage
+  const timetableUIKey = `timetable_ui_${year}_${dept}_${section}`;
+  const directTimetableData = localStorage.getItem(timetableUIKey);
+  
+  // Determine if a timetable is available either from appState or directly from localStorage
+  const isTimetableAvailable = !!(
+    (currentTimetable && Object.keys(currentTimetable.grid).length > 0) ||
+    (directTimetableData && Object.keys(JSON.parse(directTimetableData)).length > 0)
+  );
+  
+  // Determine if it's a master timetable
   const isMaster = currentTimetable?.status === TimetableStatus.Master;
   
-  const matchingMasterCards = appState.masterCards.filter(
+  // Get the matching master cards
+  const matchingMasterCards = appState?.masterCards.filter(
     card => card.sectionKey === sectionKey
-  );
+  ) || [];
 
   return (
     <div className="space-y-6">
@@ -183,8 +240,40 @@ const MasterTimetable: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="bg-muted/50 p-4 rounded-md">
-              <p className="text-center py-8">Timetable Grid Visualization Placeholder</p>
-              <p className="text-center text-muted-foreground">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border p-2 bg-muted">Period</th>
+                    <th className="border p-2 bg-muted">Monday</th>
+                    <th className="border p-2 bg-muted">Tuesday</th>
+                    <th className="border p-2 bg-muted">Wednesday</th>
+                    <th className="border p-2 bg-muted">Thursday</th>
+                    <th className="border p-2 bg-muted">Friday</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3, 4, 5, 6].map(period => (
+                    <tr key={period}>
+                      <td className="border p-2 font-medium">Period {period}</td>
+                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day => {
+                        const timetableGrid = currentTimetable?.grid || {};
+                        const entry = timetableGrid[day]?.[period-1];
+                        return (
+                          <td key={day} className="border p-2 text-center">
+                            {entry ? (
+                              <div>
+                                <div className="font-medium">{entry.subject}</div>
+                                <div className="text-xs text-muted-foreground">{entry.staff}</div>
+                              </div>
+                            ) : "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-center text-muted-foreground mt-4">
                 {isMaster 
                   ? "This is the confirmed master timetable for this section." 
                   : "Confirm this timetable to set it as the master timetable."}

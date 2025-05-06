@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Lock, Unlock, Save, RotateCcw } from "lucide-react";
-import { TimetableData, TimetableDraft, TimeSlot } from "@/types/timetable";
+import { Lock, Unlock, Save, RotateCcw, FileCheck } from "lucide-react";
+import { TimetableData, TimetableDraft, TimeSlot, RecentUpdate } from "@/types/timetable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +15,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { generateTimetable, convertToTimetableData } from "@/utils/timetableGenerator";
 import { staffData, subjectData } from "./TimetableGenerator";
@@ -32,8 +33,10 @@ const TimetableView: React.FC = () => {
     assignedSlots: 0,
     unassignedSlots: 0
   });
-  // Add state for regeneration modal
+  // Add state for dialogs
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveComplete, setSaveComplete] = useState(false);
  
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const periodTimings = [
@@ -138,6 +141,7 @@ const TimetableView: React.FC = () => {
   };
  
   const handleSaveTimetable = () => {
+    setIsSaving(true);
     // In a real application, this would send the data to the server
     // For now we'll just persist to localStorage with the locked cells information
     const draft = localStorage.getItem(`timetable_draft_${year}_${dept}_${section}`);
@@ -159,28 +163,76 @@ const TimetableView: React.FC = () => {
         });
        
         // Save the updated draft
+        const currentTime = new Date();
         const updatedDraft: TimetableDraft = {
           ...parsedDraft,
           timeSlots: updatedTimeSlots,
-          lastUpdated: new Date()
+          lastUpdated: currentTime
         };
        
         localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`,
           JSON.stringify(updatedDraft)
         );
+        
+        // Add to recent updates in app state
+        const appStateKey = `appState_${year}_${dept}_${section}`;
+        const appStateStr = localStorage.getItem(appStateKey);
+        
+        if (appStateStr) {
+          try {
+            const appState = JSON.parse(appStateStr);
+            
+            // Create a new update
+            const newUpdate: RecentUpdate = {
+              id: `update_${Date.now()}`,
+              time: currentTime,
+              message: `Timetable draft saved for ${year} Year ${dept} - Section ${section}`,
+              type: 'timetable',
+              relatedId: `${year}_${dept}_${section}_draft`
+            };
+            
+            // Update the app state with the new update
+            const updatedAppState = {
+              ...appState,
+              recentUpdates: [newUpdate, ...appState.recentUpdates.slice(0, 19)]
+            };
+            
+            // Save the updated app state
+            localStorage.setItem(appStateKey, JSON.stringify(updatedAppState));
+          } catch (error) {
+            console.error("Error updating app state:", error);
+          }
+        }
        
-        toast({
-          title: "Timetable Saved",
-          description: "Your draft timetable has been saved successfully with locked cells preserved.",
-        });
+        setTimeout(() => {
+          setIsSaving(false);
+          setSaveComplete(true);
+          
+          toast({
+            title: "Timetable Saved",
+            description: "Your draft timetable has been saved successfully with locked cells preserved.",
+          });
+          
+          setTimeout(() => {
+            setSaveComplete(false);
+          }, 3000);
+        }, 1000);
       } catch (error) {
         console.error("Error saving timetable:", error);
+        setIsSaving(false);
         toast({
           title: "Save Failed",
           description: "There was an error saving your timetable.",
           variant: "destructive"
         });
       }
+    } else {
+      setIsSaving(false);
+      toast({
+        title: "No Draft Found",
+        description: "No timetable draft found to save.",
+        variant: "destructive"
+      });
     }
   };
  
@@ -568,6 +620,54 @@ const TimetableView: React.FC = () => {
               <p className="text-xs text-muted-foreground">Locked cells will be preserved</p>
             </div>
           </div>
+          <style>
+            {`.radix-dialog-close-button { display: none; }`}
+          </style>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Saving dialog */}
+      <Dialog open={isSaving || saveComplete}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{saveComplete ? "Timetable Saved Successfully" : "Saving Timetable Draft"}</DialogTitle>
+            <DialogDescription>
+              {saveComplete 
+                ? "Your timetable draft has been saved with locked cells preserved"
+                : "Please wait while we save your draft timetable"
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-4 py-6">
+            {isSaving ? (
+              <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <FileCheck className="h-6 w-6" />
+              </div>
+            )}
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium">
+                {isSaving 
+                  ? "Saving your timetable configuration..." 
+                  : "Your timetable has been saved!"
+                }
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isSaving
+                  ? "This will just take a moment"
+                  : "All locked cells and schedule changes have been preserved"
+                }
+              </p>
+            </div>
+          </div>
+          {saveComplete && (
+            <DialogFooter>
+              <Button variant="outline" className="w-full" onClick={() => setSaveComplete(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          )}
           <style>
             {`.radix-dialog-close-button { display: none; }`}
           </style>

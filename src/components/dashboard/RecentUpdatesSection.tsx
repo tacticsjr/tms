@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { RecentUpdate } from "@/types/timetable";
-import { Clock, AlertTriangle, Pencil, Book, Bell } from "lucide-react";
+import { Clock, AlertTriangle, Pencil, Book, Bell, Save } from "lucide-react";
 
 interface RecentUpdatesSectionProps {
   updates: RecentUpdate[];
@@ -46,7 +46,7 @@ const RecentUpdatesSection: React.FC<RecentUpdatesSectionProps> = ({ updates }) 
         <div key={update.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent/30 transition-colors">
           <div className="h-8 w-8 rounded-full flex items-center justify-center bg-accent">
             {update.type === 'substitution' && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
-            {update.type === 'timetable' && <Clock className="h-4 w-4 text-blue-500" />}
+            {update.type === 'timetable' && <Save className="h-4 w-4 text-blue-500" />}
             {update.type === 'staff' && <Pencil className="h-4 w-4 text-green-500" />}
             {update.type === 'subject' && <Book className="h-4 w-4 text-purple-500" />}
             {update.type === 'notification' && <Bell className="h-4 w-4 text-red-500" />}
@@ -59,7 +59,7 @@ const RecentUpdatesSection: React.FC<RecentUpdatesSectionProps> = ({ updates }) 
           
           <div>
             {update.type === 'substitution' && <Badge variant="destructive">Substitution</Badge>}
-            {update.type === 'timetable' && <Badge variant="outline">Timetable</Badge>}
+            {update.type === 'timetable' && <Badge variant="outline" className="text-blue-500 border-blue-500">Timetable</Badge>}
             {update.type === 'staff' && <Badge className="bg-blue-500">Staff</Badge>}
             {update.type === 'subject' && <Badge className="bg-purple-500">Subject</Badge>}
             {update.type === 'notification' && <Badge className="bg-yellow-500">Notification</Badge>}

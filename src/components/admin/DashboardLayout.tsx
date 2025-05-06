@@ -28,6 +28,11 @@ const DashboardLayout: React.FC = () => {
         title = "Subject Management";
       } else if (pathParts.includes("timetables")) {
         title = "Timetable Generator";
+        
+        // If the last part is "draft", it's the timetable view
+        if (section === "draft") {
+          title = "Timetable Draft Editor";
+        }
       } else if (pathParts.includes("master")) {
         title = "Master Timetable";
       }
@@ -35,6 +40,7 @@ const DashboardLayout: React.FC = () => {
     
     // Set the document title
     document.title = `${title} | Timetable Manager`;
+    setPageTitle(title);
   }, [location]);
   
   return (

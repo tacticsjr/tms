@@ -215,7 +215,7 @@ const SectionDashboard: React.FC = () => {
     return () => clearInterval(wsUpdateInterval);
   }, [appState, year, dept, section, toast]);
 
-  const getRandomUpdateMessage = (type: string): string => {
+  const getRandomUpdateMessage = (type: RecentUpdate['type']): string => {
     switch (type) {
       case 'substitution':
         return `${getRandomStaffName()} assigned as substitute for ${getRandomDay()} Period ${Math.floor(Math.random() * 7) + 1}`;
@@ -255,17 +255,19 @@ const SectionDashboard: React.FC = () => {
       staff.id === updatedStaff.id ? updatedStaff : staff
     );
     
+    const newUpdate: RecentUpdate = {
+      id: `update_${Date.now()}`,
+      time: new Date(),
+      message: `${updatedStaff.name}'s information updated`,
+      type: 'staff',
+      relatedId: updatedStaff.id
+    };
+    
     const newState = {
       ...appState,
       staffList: newStaffList,
       recentUpdates: [
-        {
-          id: `update_${Date.now()}`,
-          time: new Date(),
-          message: `${updatedStaff.name}'s information updated`,
-          type: 'staff',
-          relatedId: updatedStaff.id
-        },
+        newUpdate,
         ...appState.recentUpdates.slice(0, 19)
       ]
     };
@@ -290,17 +292,19 @@ const SectionDashboard: React.FC = () => {
       subject.id === updatedSubject.id ? updatedSubject : subject
     );
     
+    const newUpdate: RecentUpdate = {
+      id: `update_${Date.now()}`,
+      time: new Date(),
+      message: `${updatedSubject.name} subject updated`,
+      type: 'subject',
+      relatedId: updatedSubject.id
+    };
+    
     const newState = {
       ...appState,
       subjectList: newSubjectList,
       recentUpdates: [
-        {
-          id: `update_${Date.now()}`,
-          time: new Date(),
-          message: `${updatedSubject.name} subject updated`,
-          type: 'subject',
-          relatedId: updatedSubject.id
-        },
+        newUpdate,
         ...appState.recentUpdates.slice(0, 19)
       ]
     };

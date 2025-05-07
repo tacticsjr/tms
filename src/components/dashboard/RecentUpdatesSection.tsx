@@ -50,23 +50,25 @@ const RecentUpdatesSection: React.FC<RecentUpdatesSectionProps> = ({ updates }) 
             {update.type === 'staff' && <Pencil className="h-4 w-4 text-green-500" />}
             {update.type === 'subject' && <Book className="h-4 w-4 text-purple-500" />}
             {update.type === 'notification' && <Bell className="h-4 w-4 text-red-500" />}
+            {update.type === 'master' && <FileCheck className="h-4 w-4 text-green-500" />}
           </div>
           
           <div className="flex-1">
             <p className="text-sm">{update.message}</p>
-            <p className="text-xs text-muted-foreground">{getTimeAgo(new Date(update.time))}</p>
+            <p className="text-xs text-muted-foreground">
+              {update.time instanceof Date 
+                ? getTimeAgo(update.time)
+                : getTimeAgo(new Date(update.time))}
+            </p>
           </div>
           
           <div>
             {update.type === 'substitution' && <Badge variant="destructive">Substitution</Badge>}
-            {update.type === 'timetable' && (
-              update.message.toLowerCase().includes("master") ? 
-                <Badge className="bg-green-500">Master</Badge> : 
-                <Badge variant="outline" className="text-blue-500 border-blue-500">Timetable</Badge>
-            )}
+            {update.type === 'timetable' && <Badge variant="outline" className="text-blue-500 border-blue-500">Timetable</Badge>}
             {update.type === 'staff' && <Badge className="bg-blue-500">Staff</Badge>}
             {update.type === 'subject' && <Badge className="bg-purple-500">Subject</Badge>}
             {update.type === 'notification' && <Badge className="bg-yellow-500">Notification</Badge>}
+            {update.type === 'master' && <Badge className="bg-green-500">Master</Badge>}
           </div>
         </div>
       ))}

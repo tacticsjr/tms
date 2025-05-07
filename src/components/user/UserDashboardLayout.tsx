@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Bell, Calendar, LogOut, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const UserDashboardLayout: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   

@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase, getUser, signOut, onAuthStateChange } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -72,7 +72,20 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [lastActivity, user]);
 
   useEffect(() => {
-    // Get initial session
+    // First set up auth subscription to avoid missing auth events
+    const subscription = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event);
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+    
+    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -82,18 +95,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLoading(false);
     });
 
-    // Set up auth subscription
-    const subscription = onAuthStateChange((session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
     return () => {
-      subscription.unsubscribe();
+      subscription.data.subscription.unsubscribe();
     };
   }, []);
 
@@ -105,8 +108,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+      
       setProfile(data);
+      console.log("Profile loaded:", data);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -117,6 +125,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
+        console.error("Login error:", error);
         toast.error(`Login failed: ${error.message}`);
         return { success: false, error: error.message };
       }
@@ -125,6 +134,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       return { success: true };
     } catch (error: any) {
+      console.error("Login error:", error);
       toast.error(`Login error: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -180,7 +190,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const handleSignOut = async () => {
     setLoading(true);
-    await signOut();
+    await supabase.auth.signOut();
     setProfile(null);
     setLoading(false);
     toast.success("Logged out successfully");

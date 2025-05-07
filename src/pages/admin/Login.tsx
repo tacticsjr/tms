@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("admin@velammal.edu");
-  const [password, setPassword] = useState("admin123");
+  const [password, setPassword] = useState("Monesh23062004");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const Login = () => {
       });
       
       if (error) {
+        console.error("Login error:", error);
         toast({
           title: "Login failed",
           description: error.message,
@@ -36,26 +37,46 @@ const Login = () => {
         return;
       }
       
-      // Check if the user has the admin role
-      const { data: userData, error: userError } = await supabase
+      // Successfully logged in, now check if the user has the admin role
+      const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
         .eq('id', data.user?.id)
         .single();
       
-      if (userError || !userData) {
+      if (profileError || !profile) {
+        console.error("Profile fetch error:", profileError);
+        // Create a user profile if it doesn't exist (first login)
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([{
+            id: data.user?.id,
+            email: data.user?.email,
+            name: "Admin User",
+            role: "admin"
+          }]);
+          
+        if (insertError) {
+          toast({
+            title: "Profile setup failed",
+            description: "Could not create user profile",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          setIsSubmitting(false);
+          return;
+        }
+        
         toast({
-          title: "Login failed",
-          description: "User profile not found",
-          variant: "destructive",
+          title: "Login successful",
+          description: "Welcome to Velammal AI Scheduler",
         });
-        // Sign the user out if they don't have a profile
-        await supabase.auth.signOut();
-        setIsSubmitting(false);
+        
+        navigate("/admin/dashboard");
         return;
       }
       
-      if (userData.role !== 'admin') {
+      if (profile.role !== 'admin') {
         toast({
           title: "Access denied",
           description: "You don't have admin access",
@@ -74,12 +95,12 @@ const Login = () => {
       
       navigate("/admin/dashboard");
     } catch (error: any) {
+      console.error("Unexpected error:", error);
       toast({
         title: "Login error",
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +172,7 @@ const Login = () => {
         
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>Demo Credentials</p>
-          <p>Email: admin@velammal.edu | Password: admin123</p>
+          <p>Email: admin@velammal.edu | Password: Monesh23062004</p>
         </div>
       </div>
     </div>

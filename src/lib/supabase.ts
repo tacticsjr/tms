@@ -1,39 +1,43 @@
-
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/supabase'
 
-// Supabase connection details
-// In production, these would be environment variables
-const supabaseUrl = 'https://your-supabase-project-url.supabase.co'
-const supabaseAnonKey = 'your-supabase-anon-key'
+// Use the correct Supabase URL and anon key from your project
+const supabaseUrl = 'https://sfdfdsodsqqttvvqeuua.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZGZkc29kc3FxdHR2dnFldXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1OTMzNDcsImV4cCI6MjA2MjE2OTM0N30.k1riP_FEcwZm5R8NbAdW2EojcMBE__iknyAfLAlu9ag';
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storage: localStorage
+  }
+});
 
 // Helper functions for common operations
 export const getUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
 
 export const signOut = async () => {
-  return await supabase.auth.signOut()
-}
+  return await supabase.auth.signOut();
+};
 
 // Session management
 export const getSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session
-}
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+};
 
 // Subscribe to auth changes
 export const onAuthStateChange = (callback: (session: any) => void) => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session)
-  })
+    callback(session);
+  });
   
-  return subscription
-}
+  return subscription;
+};
 
 // Staff management functions
 export const getStaffBySection = async (year: string, dept: string, section: string) => {

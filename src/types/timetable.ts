@@ -135,7 +135,7 @@ export interface RecentUpdate {
   id: string;
   time: Date;
   message: string;
-  type: 'substitution' | 'timetable' | 'staff' | 'subject' | 'notification';
+  type: 'substitution' | 'timetable' | 'staff' | 'subject' | 'notification' | 'master';
   relatedId?: string;
 }
 

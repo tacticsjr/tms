@@ -1,6 +1,7 @@
 
 import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 interface UserProtectedRouteProps {
   children: React.ReactNode;
@@ -8,16 +9,23 @@ interface UserProtectedRouteProps {
 
 const UserProtectedRoute: React.FC<UserProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
-  const currentUser = localStorage.getItem("currentUser");
+  const { user, loading } = useSupabaseAuth();
 
   useEffect(() => {
-    // This effect can be used to track navigation for analytics
-    if (currentUser) {
+    if (user) {
       console.log(`User protected route accessed: ${location.pathname}`);
     }
-  }, [location.pathname, currentUser]);
+  }, [location.pathname, user]);
 
-  if (!currentUser) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     // Redirect to login if not authenticated
     return <Navigate to="/user/login" state={{ from: location }} replace />;
   }

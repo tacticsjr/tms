@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,9 @@ const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -29,34 +33,29 @@ type FormValues = z.infer<typeof formSchema>;
 const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useSupabaseAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
+      password: "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      // Get users from localStorage
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const { success, error } = await signIn(data.email, data.password);
       
-      // Find user by email
-      const user = users.find((u: any) => u.email === data.email);
-      
-      if (user) {
-        // Set current user
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        
+      if (success) {
         toast.success("Login successful!");
         navigate("/user/dashboard");
       } else {
-        toast.error("User not found. Please register first.");
+        toast.error(error || "Login failed. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       toast.error("Login failed. Please try again.");
     } finally {
@@ -76,7 +75,7 @@ const Login = () => {
           <CardHeader>
             <CardTitle>Student Login</CardTitle>
             <CardDescription>
-              Enter your email to access your timetable
+              Enter your email and password to access your timetable
             </CardDescription>
           </CardHeader>
           
@@ -91,6 +90,20 @@ const Login = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="your.email@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell, AlertTriangle, Info, Calendar } from "lucide-react";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { getNotificationsForSection, subscribeNotificationUpdates, markNotificationAsRead } from "@/services/timetableService";
 
 interface Notification {
   id: string;
@@ -21,47 +23,50 @@ interface Notification {
 }
 
 const Notifications = () => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { profile } = useSupabaseAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // Load user data and notifications
   useEffect(() => {
-    const userStr = localStorage.getItem("currentUser");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
+    const loadNotifications = async () => {
+      if (!profile) return;
       
-      // Load all notifications
-      const allNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-      
-      // Filter notifications for this user's department and section
-      const userDeptSection = `${user.department}-${user.section}`;
-      const relevantNotifications = allNotifications.filter((notification: Notification) => 
-        notification.to === userDeptSection || notification.to === "ALL"
+      setLoading(true);
+      const data = await getNotificationsForSection(profile.department, profile.section);
+      setNotifications(data);
+      setLoading(false);
+    };
+    
+    loadNotifications();
+    
+    // Set up real-time subscription
+    if (profile) {
+      const unsubscribe = subscribeNotificationUpdates(
+        profile.department,
+        profile.section,
+        (updatedNotifications) => {
+          setNotifications(updatedNotifications);
+        }
       );
       
-      setNotifications(relevantNotifications.sort((a: Notification, b: Notification) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      ));
+      return unsubscribe;
     }
-  }, []);
+  }, [profile]);
   
   // Function to mark notification as read
-  const markAsRead = (id: string) => {
-    setNotifications(prevNotifications => 
-      prevNotifications.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+  const handleMarkAsRead = async (id: string) => {
+    const success = await markNotificationAsRead(id);
     
-    // You might want to store read status in localStorage as well
-    const allNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-    const updatedNotifications = allNotifications.map((notification: Notification) =>
-      notification.id === id ? { ...notification, read: true } : notification
-    );
-    localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+    if (success) {
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+    }
   };
   
   // Helper function to format date
@@ -89,13 +94,21 @@ const Notifications = () => {
     }
   };
   
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="spinner h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Notifications</h1>
-        {currentUser && (
+        {profile && (
           <Badge variant="outline" className="px-3 py-1">
-            {currentUser.department} - {currentUser.section}
+            {profile.department} - {profile.section}
           </Badge>
         )}
       </div>
@@ -117,7 +130,7 @@ const Notifications = () => {
                   className={`flex gap-3 p-3 rounded-lg border ${
                     notification.read ? "bg-background" : "bg-accent/20"
                   }`}
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <div className="self-start mt-1">
                     {getNotificationIcon(notification.type)}

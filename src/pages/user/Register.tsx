@@ -1,11 +1,11 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,9 @@ const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
   department: z.string({
     required_error: "Please select a department.",
   }),
@@ -49,57 +52,40 @@ const sections = ["A", "B", "C", "D"];
 const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signUp } = useSupabaseAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       email: "",
+      password: "",
       department: "",
       section: "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     
-    // Create a unique ID for the user
-    const userId = uuidv4();
-    
-    // Create user object
-    const user = {
-      id: userId,
-      name: data.name,
-      email: data.email,
-      department: data.department,
-      section: data.section,
-    };
-    
     try {
-      // Get existing users or initialize empty array
-      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      // Create user object with form data
+      const userData = {
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        section: data.section,
+      };
       
-      // Check if email already exists
-      if (existingUsers.some((u: any) => u.email === data.email)) {
-        toast.error("Email already registered. Please login instead.");
-        setIsSubmitting(false);
-        return;
+      const { success, error } = await signUp(data.email, data.password, userData);
+      
+      if (success) {
+        toast.success("Registration successful!");
+        navigate("/user/dashboard");
+      } else {
+        toast.error(error || "Registration failed. Please try again.");
       }
-      
-      // Add new user
-      const updatedUsers = [...existingUsers, user];
-      
-      // Save to localStorage
-      localStorage.setItem("users", JSON.stringify(updatedUsers));
-      
-      // Set current user (auto login)
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      
-      toast.success("Registration successful!");
-      
-      // Navigate to dashboard
-      navigate("/user/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       toast.error("Registration failed. Please try again.");
     } finally {
@@ -148,6 +134,20 @@ const Register = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="your.email@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -17,12 +17,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { getTimetableForSection, subscribeTimetableUpdates } from "@/services/timetableService";
+import { TimetableData } from "@/types/timetable";
 
 const Dashboard = () => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [timetable, setTimetable] = useState<any>(null);
+  const { profile } = useSupabaseAuth();
+  const [timetable, setTimetable] = useState<TimetableData | null>(null);
   const [currentDay, setCurrentDay] = useState<string>("");
   const [currentPeriod, setCurrentPeriod] = useState<number>(-1);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // Days and periods
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -68,28 +72,32 @@ const Dashboard = () => {
   
   // Load user data and timetable
   useEffect(() => {
-    const userStr = localStorage.getItem("currentUser");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
+    const loadTimetable = async () => {
+      if (!profile) return;
       
-      // Load master timetable for the user's department and section
-      const allTimetables = JSON.parse(localStorage.getItem("masterTimetables") || "{}");
-      
-      // Create the key for the user's timetable (format: "deptname-sectionname")
-      const timetableKey = `${user.department}-${user.section}`;
-      
-      if (allTimetables[timetableKey]) {
-        setTimetable(allTimetables[timetableKey]);
-      } else {
-        // If no master timetable, check draft timetables
-        const draftTimetables = JSON.parse(localStorage.getItem("timetableDrafts") || "{}");
-        if (draftTimetables[timetableKey]) {
-          setTimetable(draftTimetables[timetableKey]);
-        }
+      setLoading(true);
+      const data = await getTimetableForSection(profile.department, profile.section);
+      if (data) {
+        setTimetable(data);
       }
+      setLoading(false);
+    };
+    
+    loadTimetable();
+    
+    // Set up real-time subscription
+    if (profile) {
+      const unsubscribe = subscribeTimetableUpdates(
+        profile.department,
+        profile.section,
+        (updatedTimetable) => {
+          setTimetable(updatedTimetable);
+        }
+      );
+      
+      return unsubscribe;
     }
-  }, []);
+  }, [profile]);
   
   // Helper function to check if a period is the current one
   const isCurrentPeriod = (day: string, periodIndex: number) => {
@@ -107,13 +115,21 @@ const Dashboard = () => {
     return dayData[periodIndex];
   };
   
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="spinner h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Student Dashboard</h1>
-        {currentUser && (
+        {profile && (
           <Badge variant="outline" className="px-3 py-1">
-            {currentUser.department} - {currentUser.section}
+            {profile.department} - {profile.section}
           </Badge>
         )}
       </div>

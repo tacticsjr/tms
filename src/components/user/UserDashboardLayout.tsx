@@ -6,39 +6,27 @@ import { toast } from "sonner";
 import { Bell, Calendar, LogOut, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 const UserDashboardLayout: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { profile, signOut, loading } = useSupabaseAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   
-  useEffect(() => {
-    const userStr = localStorage.getItem("currentUser");
-    if (!userStr) {
-      navigate("/user/login");
-      return;
-    }
-    
-    try {
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
-    } catch (error) {
-      console.error("Failed to parse user data:", error);
-      localStorage.removeItem("currentUser");
-      navigate("/user/login");
-    }
-  }, [navigate]);
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
   
-  const handleLogout = () => {
-    localStorage.removeItem("currentUser");
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Logged out successfully");
     navigate("/user/login");
   };
-  
-  if (!currentUser) {
-    return null; // Will redirect in useEffect
-  }
   
   const isActive = (path: string) => {
     return location.pathname === path ? "bg-accent text-accent-foreground" : "";
@@ -101,11 +89,11 @@ const UserDashboardLayout: React.FC = () => {
             </Sheet>
           )}
           <h1 className="text-lg font-semibold">
-            {currentUser.department}-{currentUser.section} Dashboard
+            {profile.department}-{profile.section} Dashboard
           </h1>
         </div>
         <div>
-          <span className="text-sm font-medium">{currentUser.name}</span>
+          <span className="text-sm font-medium">{profile.name}</span>
         </div>
       </header>
       

@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase, getUser } from "@/lib/supabase";
+import { supabase, getUser, signOut, onAuthStateChange } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface AuthContextType {
   session: Session | null;
@@ -16,12 +16,60 @@ interface AuthContextType {
 
 const SupabaseAuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Auto logout after inactivity
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // Track user activity
+  useEffect(() => {
+    const resetInactivityTimer = () => {
+      setLastActivity(Date.now());
+    };
+    
+    window.addEventListener("mousemove", resetInactivityTimer);
+    window.addEventListener("keydown", resetInactivityTimer);
+    window.addEventListener("click", resetInactivityTimer);
+    window.addEventListener("scroll", resetInactivityTimer);
+    
+    return () => {
+      window.removeEventListener("mousemove", resetInactivityTimer);
+      window.removeEventListener("keydown", resetInactivityTimer);
+      window.removeEventListener("click", resetInactivityTimer);
+      window.removeEventListener("scroll", resetInactivityTimer);
+    };
+  }, []);
+  
+  // Auto logout timer
+  useEffect(() => {
+    // Clear any existing timer
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+    }
+    
+    // Only set timer if user is logged in
+    if (user) {
+      const timer = setTimeout(() => {
+        // Auto logout when inactive
+        handleSignOut();
+        toast("You have been logged out due to inactivity");
+      }, INACTIVITY_TIMEOUT);
+      
+      setInactivityTimer(timer);
+    }
+    
+    return () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+    };
+  }, [lastActivity, user]);
 
   useEffect(() => {
     // Get initial session
@@ -34,8 +82,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Set up auth subscription
+    const subscription = onAuthStateChange((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -64,45 +112,34 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        toast({ 
-          title: "Login failed", 
-          description: error.message,
-          variant: "destructive"
-        });
+        toast.error(`Login failed: ${error.message}`);
         return { success: false, error: error.message };
       }
 
-      toast({ 
-        title: "Login successful", 
-        description: "Welcome back!"
-      });
+      toast.success("Login successful. Welcome back!");
       
       return { success: true };
     } catch (error: any) {
-      toast({ 
-        title: "Login error", 
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error(`Login error: ${error.message}`);
       return { success: false, error: error.message };
     }
   };
 
-  const signUp = async (email: string, password: string, userData: any) => {
+  const handleSignUp = async (email: string, password: string, userData: any) => {
     try {
-      // 1. Sign up user with email and password
+      // 1. Sign up user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
             name: userData.name,
-            role: 'student'
+            role: userData.role || 'student'
           }
         }
       });
@@ -122,38 +159,31 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           id: authData.user.id,
           name: userData.name,
           email: userData.email,
-          role: 'student',
+          role: userData.role || 'student',
           department: userData.department,
           section: userData.section,
-          year: '2023'  // Default to current academic year
+          year: userData.year || '2023'
         });
       
       if (profileError) {
         throw profileError;
       }
       
-      toast({ 
-        title: "Registration successful", 
-        description: "Your account has been created" 
-      });
+      toast.success("Registration successful! Your account has been created.");
       
       return { success: true };
     } catch (error: any) {
-      toast({ 
-        title: "Registration failed", 
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error(`Registration failed: ${error.message}`);
       return { success: false, error: error.message };
     }
   };
 
-  const signOutUser = async () => {
+  const handleSignOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    await signOut();
     setProfile(null);
     setLoading(false);
-    toast({ title: "Logged out successfully" });
+    toast.success("Logged out successfully");
   };
 
   return (
@@ -162,9 +192,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         session,
         user,
         profile,
-        signIn,
-        signUp,
-        signOut: signOutUser,
+        signIn: handleSignIn,
+        signUp: handleSignUp,
+        signOut: handleSignOut,
         loading
       }}
     >

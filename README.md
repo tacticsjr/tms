@@ -1,73 +1,87 @@
-# Welcome to your Lovable project
 
-## Project info
+# Velammal AI Scheduler
 
-**URL**: https://lovable.dev/projects/5ac4a2c1-864a-4a8d-a998-dd07f986437b
+An AI-powered intelligent timetable scheduler for educational institutions with real-time updates using Supabase.
 
-## How can I edit this code?
+## Setup Instructions
 
-There are several ways of editing your application.
+### Supabase Setup
 
-**Use Lovable**
+1. Create a Supabase project at [https://supabase.com/](https://supabase.com/)
+2. In your project dashboard, go to SQL editor and run the contents of `schema.sql` to create the database schema
+3. Get your project URL and anon key from the API settings page
+4. Update the `supabaseUrl` and `supabaseAnonKey` in `src/lib/supabase.ts` with your values
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5ac4a2c1-864a-4a8d-a998-dd07f986437b) and start prompting.
+### Enable Authentication
 
-Changes made via Lovable will be committed automatically to this repo.
+1. In your Supabase dashboard, go to Authentication > Settings
+2. Configure your redirect URLs (for development, add `http://localhost:5173/auth/callback`)
+3. Configure email templates if needed
+4. Create a test admin user:
 
-**Use your preferred IDE**
+```sql
+-- Create a user in auth.users (this is managed by Supabase)
+INSERT INTO auth.users (
+  instance_id,
+  id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_user_meta_data
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  uuid_generate_v4(),
+  'admin@velammal.edu',
+  -- This is a hashed password for 'admin123', but in production use Supabase Auth UI/API
+  crypt('admin123', gen_salt('bf')),
+  now(),
+  '{"name":"Admin User", "role":"admin"}'
+);
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+-- Create the corresponding user profile
+INSERT INTO public.users (
+  id,
+  email,
+  name,
+  role,
+  department,
+  created_at
+) 
+SELECT id, email, 'Admin User', 'admin', 'ALL', now()
+FROM auth.users 
+WHERE email = 'admin@velammal.edu';
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Development
 
-Follow these steps:
+1. Install dependencies:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Start the development server:
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+3. Visit `http://localhost:5173` in your browser
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Features
 
-**Use GitHub Codespaces**
+- Real-time timetable updates
+- Staff management with availability tracking
+- Subject scheduling with constraints
+- Automatic timetable generation
+- Substitution management
+- Notifications system
+- Role-based access control (admin, staff, student)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Technology Stack
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/5ac4a2c1-864a-4a8d-a998-dd07f986437b) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- Frontend: React with TypeScript
+- UI: Tailwind CSS with ShadcnUI components
+- Backend: Supabase (PostgreSQL + Row Level Security)
+- Authentication: Supabase Auth
+- Real-time: Supabase Realtime

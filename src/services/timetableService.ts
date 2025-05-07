@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { TimetableData, TimetableEntry } from '@/types/timetable';
 
@@ -126,6 +127,116 @@ export const markNotificationAsRead = async (notificationId: string) => {
     return true;
   } catch (error) {
     console.error('Error marking notification as read:', error);
+    return false;
+  }
+};
+
+export const saveDraftTimetable = async (
+  department: string, 
+  section: string, 
+  grid: TimetableData
+) => {
+  try {
+    // Check if draft already exists
+    const { data: existingDraft } = await supabase
+      .from('timetables')
+      .select('id')
+      .eq('department', department)
+      .eq('section', section)
+      .eq('status', 'draft')
+      .single();
+    
+    if (existingDraft) {
+      // Update existing draft
+      const { error } = await supabase
+        .from('timetables')
+        .update({ 
+          grid,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingDraft.id);
+      
+      if (error) throw error;
+    } else {
+      // Create new draft
+      const { error } = await supabase
+        .from('timetables')
+        .insert({
+          department,
+          section,
+          status: 'draft',
+          grid,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving draft timetable:', error);
+    return false;
+  }
+};
+
+export const promoteTimetableToMaster = async (
+  department: string,
+  section: string
+) => {
+  try {
+    // Get the draft
+    const { data: draft, error: draftError } = await supabase
+      .from('timetables')
+      .select('*')
+      .eq('department', department)
+      .eq('section', section)
+      .eq('status', 'draft')
+      .single();
+    
+    if (draftError || !draft) {
+      throw new Error('Draft not found');
+    }
+    
+    // Check if master already exists
+    const { data: existingMaster } = await supabase
+      .from('timetables')
+      .select('id')
+      .eq('department', department)
+      .eq('section', section)
+      .eq('status', 'confirmed')
+      .single();
+    
+    if (existingMaster) {
+      // Update existing master
+      const { error } = await supabase
+        .from('timetables')
+        .update({
+          grid: draft.grid,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingMaster.id);
+      
+      if (error) throw error;
+    } else {
+      // Create new master
+      const { error } = await supabase
+        .from('timetables')
+        .insert({
+          department,
+          section,
+          status: 'confirmed',
+          grid: draft.grid,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error promoting timetable to master:', error);
     return false;
   }
 };

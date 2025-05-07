@@ -79,82 +79,112 @@ export interface Database {
           id: string
           name: string
           email: string
-          load: number
-          assigned_sections: string[]
+          subject: string
+          max_periods: number
+          department: string
+          section: string
+          year: string
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           email: string
-          load?: number
-          assigned_sections?: string[]
+          subject: string
+          max_periods?: number
+          department: string
+          section: string
+          year: string
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
           email?: string
-          load?: number
-          assigned_sections?: string[]
+          subject?: string
+          max_periods?: number
+          department?: string
+          section?: string
+          year?: string
           created_at?: string
         }
       }
       subjects: {
         Row: {
           id: string
-          name: string
           code: string
-          type: 'Theory' | 'Lab'
-          weekly_periods: number
-          assigned_staff: string | null
+          title: string
+          type: 'Theory' | 'Lab' | 'Activity'
+          periods_per_week: number
+          assigned_staff_id: string | null
+          is_continuous: boolean
+          department: string
+          section: string
+          year: string
           created_at: string
         }
         Insert: {
           id?: string
-          name: string
           code: string
-          type: 'Theory' | 'Lab'
-          weekly_periods: number
-          assigned_staff?: string | null
+          title: string
+          type: 'Theory' | 'Lab' | 'Activity'
+          periods_per_week: number
+          assigned_staff_id?: string | null
+          is_continuous?: boolean
+          department: string
+          section: string
+          year: string
           created_at?: string
         }
         Update: {
           id?: string
-          name?: string
           code?: string
-          type?: 'Theory' | 'Lab'
-          weekly_periods?: number
-          assigned_staff?: string | null
+          title?: string
+          type?: 'Theory' | 'Lab' | 'Activity'
+          periods_per_week?: number
+          assigned_staff_id?: string | null
+          is_continuous?: boolean
+          department?: string
+          section?: string
+          year?: string
           created_at?: string
         }
       }
       substitutions: {
         Row: {
           id: string
-          section_id: string
           date: string
           period: number
-          absent_staff: string
-          substitute_staff: string
+          absent_staff_id: string
+          substitute_staff_id: string
+          reason: string | null
+          department: string
+          section: string
+          year: string
           created_at: string
         }
         Insert: {
           id?: string
-          section_id: string
           date: string
           period: number
-          absent_staff: string
-          substitute_staff: string
+          absent_staff_id: string
+          substitute_staff_id: string
+          reason?: string | null
+          department: string
+          section: string
+          year: string
           created_at?: string
         }
         Update: {
           id?: string
-          section_id?: string
           date?: string
           period?: number
-          absent_staff?: string
-          substitute_staff?: string
+          absent_staff_id?: string
+          substitute_staff_id?: string
+          reason?: string | null
+          department?: string
+          section?: string
+          year?: string
           created_at?: string
         }
       }
@@ -168,6 +198,9 @@ export interface Database {
           recipients: string[]
           created_at: string
           type: 'general' | 'alert' | 'timetable'
+          department: string
+          section: string
+          year: string
         }
         Insert: {
           id?: string
@@ -178,6 +211,9 @@ export interface Database {
           recipients: string[]
           created_at?: string
           type: 'general' | 'alert' | 'timetable'
+          department: string
+          section: string
+          year: string
         }
         Update: {
           id?: string
@@ -188,6 +224,29 @@ export interface Database {
           recipients?: string[]
           created_at?: string
           type?: 'general' | 'alert' | 'timetable'
+          department?: string
+          section?: string
+          year?: string
+        }
+      }
+      notifications_read: {
+        Row: {
+          id: string
+          notification_id: string
+          user_id: string
+          read_at: string
+        }
+        Insert: {
+          id?: string
+          notification_id: string
+          user_id: string
+          read_at: string
+        }
+        Update: {
+          id?: string
+          notification_id?: string
+          user_id?: string
+          read_at?: string
         }
       }
     }

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { TimetableData, TimetableEntry } from '@/types/timetable';
 
@@ -14,7 +13,8 @@ export const getTimetableForSection = async (department: string, section: string
     
     if (error) throw error;
     
-    return data?.grid as TimetableData;
+    // Check if data exists and has a grid property before accessing it
+    return data && 'grid' in data ? data.grid as TimetableData : null;
   } catch (error) {
     console.error('Error fetching timetable:', error);
     return null;
@@ -66,8 +66,8 @@ export const subscribeTimetableUpdates = (
         filter: `department=eq.${department}&section=eq.${section}`
       },
       (payload) => {
-        // When timetable changes, fetch the updated data
-        if (payload.new) {
+        // When timetable changes, verify payload.new exists and has a grid property
+        if (payload.new && typeof payload.new === 'object' && 'grid' in payload.new) {
           callback(payload.new.grid as TimetableData);
         }
       }

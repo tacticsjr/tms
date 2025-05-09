@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +81,10 @@ const Register = () => {
         options: {
           data: {
             name: data.name,
-            role: "student"
+            role: "student",
+            department: data.department,
+            section: data.section,
+            year: data.year
           }
         }
       });
@@ -102,27 +104,8 @@ const Register = () => {
       
       console.log("Auth successful, user created:", authData.user.id);
       
-      // 2. Insert user profile data into the users table
-      const { error: profileError } = await supabase
-        .from("users")
-        .insert({
-          id: authData.user.id,
-          name: data.name,
-          email: data.email,
-          role: "student",
-          department: data.department,
-          section: data.section,
-          year: data.year
-        });
-      
-      if (profileError) {
-        console.error("Profile creation error:", profileError);
-        toast.error(`Profile setup failed: ${profileError.message}`);
-        // Attempt to clean up the auth user if profile creation fails
-        await supabase.auth.signOut();
-        setIsSubmitting(false);
-        return;
-      }
+      // We don't need to manually insert into the users table
+      // This will be handled by a database trigger created later
       
       console.log("User profile created successfully");
       toast.success("Registration successful! Your account has been created.");

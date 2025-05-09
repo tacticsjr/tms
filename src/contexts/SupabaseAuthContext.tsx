@@ -113,6 +113,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // Create a default profile if one doesn't exist
+        await createDefaultProfile(userId);
         return;
       }
       
@@ -123,6 +125,46 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Create a default profile if one doesn't exist
+  const createDefaultProfile = async (userId: string) => {
+    try {
+      // Get user metadata from auth
+      const { data: userData } = await supabase.auth.admin.getUserById(userId);
+      
+      if (!userData || !userData.user) {
+        console.error('User data not found for ID:', userId);
+        return;
+      }
+      
+      const userEmail = userData.user.email || '';
+      
+      // Create a default profile
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          id: userId,
+          name: userData.user.user_metadata.name || 'User',
+          email: userEmail,
+          role: userData.user.user_metadata.role || 'student',
+          department: userData.user.user_metadata.department || null,
+          section: userData.user.user_metadata.section || null,
+          year: userData.user.user_metadata.year || null
+        }])
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error creating default profile:', error);
+        return;
+      }
+      
+      setProfile(data);
+      console.log('Created default profile:', data);
+    } catch (error) {
+      console.error('Error creating default profile:', error);
+    }
+  };
+
   const handleSignIn = async (email: string, password: string) => {
     try {
       console.log("Attempting sign in with:", email);
@@ -130,28 +172,42 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (error) {
         console.error("Login error:", error);
-        
-        if (error.message.includes("Email not confirmed")) {
-          toast.error("Please check your email and confirm your account before logging in.");
-        } else {
-          toast.error(`Login failed: ${error.message}`);
-        }
-        
         return { success: false, error: error.message };
       }
 
       if (!data.user) {
-        toast.error("Login failed: User data not found");
         return { success: false, error: "User data not found" };
       }
 
       console.log("Login successful, user:", data.user.id);
-      toast.success("Login successful. Welcome back!");
+      
+      // Check if a profile exists, if not create one
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const { error: createError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email || '',
+            name: data.user.user_metadata.name || 'User',
+            role: email.includes('admin') ? 'admin' : 'student', // Set role based on email
+          });
+        
+        if (createError) {
+          console.error("Error creating profile during login:", createError);
+          // We continue anyway as this is non-critical
+        }
+      }
       
       return { success: true };
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(`Login error: ${error.message || "Unknown error"}`);
       return { success: false, error: error.message };
     }
   };
@@ -177,20 +233,39 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (authError) {
         console.error("Signup error:", authError);
-        throw authError;
+        return { success: false, error: authError.message };
       }
       
       if (!authData.user) {
-        throw new Error('User creation failed');
+        return { success: false, error: 'User creation failed' };
+      }
+
+      console.log("Signup successful, user created:", authData.user.id);
+      
+      // If Supabase trigger fails, create the user profile manually as a fallback
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([{
+          id: authData.user.id,
+          email: email,
+          name: userData.name,
+          role: userData.role || 'student',
+          department: userData.department || null,
+          section: userData.section || null,
+          year: userData.year || null
+        }])
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.log("Profile may already exist or failed to create:", insertError);
+        // Non-critical error, continue
       }
       
-      console.log("Signup successful, user created:", authData.user.id);
       toast.success("Registration successful! Please check your email to confirm your account.");
-      
       return { success: true };
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error(`Registration failed: ${error.message || "Unknown error"}`);
       return { success: false, error: error.message };
     }
   };

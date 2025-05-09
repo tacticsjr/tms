@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("admin@velammal.edu");
-  const [password, setPassword] = useState("admin123"); // Changed to a simpler password
+  const [password, setPassword] = useState("admin123");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn } = useSupabaseAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,61 +25,38 @@ const Login = () => {
     try {
       console.log("Attempting admin login with:", email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Use the signIn method from SupabaseAuthContext
+      const { success, error } = await signIn(email, password);
       
-      if (error) {
-        console.error("Admin login error:", error);
+      if (!success) {
+        console.error("Admin login failed:", error);
         toast({
           title: "Login failed",
-          description: error.message,
+          description: error || "Invalid login credentials",
           variant: "destructive",
         });
         setIsSubmitting(false);
         return;
       }
       
-      console.log("Admin login successful, user:", data.user?.id);
+      console.log("Admin login successful, checking role");
       
-      // Successfully logged in, now check if the user has the admin role
+      // Check if user has admin role
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
-        .eq('id', data.user?.id)
+        .eq('email', email)
         .single();
       
       if (profileError || !profile) {
-        console.log("Profile not found or error, creating admin profile");
-        // Create a user profile if it doesn't exist (first login)
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{
-            id: data.user?.id,
-            email: data.user?.email,
-            name: "Admin User",
-            role: "admin"
-          }]);
-          
-        if (insertError) {
-          console.error("Profile setup error:", insertError);
-          toast({
-            title: "Profile setup failed",
-            description: "Could not create user profile",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          setIsSubmitting(false);
-          return;
-        }
-        
+        console.error("Profile fetch error:", profileError);
         toast({
-          title: "Login successful",
-          description: "Welcome to Velammal AI Scheduler",
+          title: "Access denied",
+          description: "Could not verify admin access",
+          variant: "destructive",
         });
-        
-        navigate("/admin/dashboard");
+        await supabase.auth.signOut();
+        setIsSubmitting(false);
         return;
       }
       

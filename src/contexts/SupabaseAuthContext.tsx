@@ -170,7 +170,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
             department: userData.department,
             section: userData.section,
             year: userData.year
-          }
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
       });
       

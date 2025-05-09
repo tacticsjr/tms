@@ -39,6 +39,15 @@ CREATE POLICY "Admins can view all data" ON public.users
     )
   );
 
+-- Create policy for admins to update all data
+CREATE POLICY "Admins can update all data" ON public.users
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 -- Create a function that will be triggered when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user_signup()
 RETURNS TRIGGER AS $$
@@ -97,3 +106,15 @@ CREATE TRIGGER on_auth_user_updated
   FOR EACH ROW
   WHEN (OLD.raw_user_meta_data IS DISTINCT FROM NEW.raw_user_meta_data)
   EXECUTE FUNCTION public.handle_user_metadata_update();
+
+-- Create an initial admin user if it doesn't exist
+-- Note: This is just for reference, you would need to create this user through the Supabase auth interface
+-- INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, role)
+-- VALUES (
+--   gen_random_uuid(),
+--   'admin@velammal.edu',
+--   crypt('admin123', gen_salt('bf')),
+--   now(),
+--   'authenticated'
+-- )
+-- ON CONFLICT (email) DO NOTHING;

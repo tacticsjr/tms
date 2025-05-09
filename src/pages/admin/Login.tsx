@@ -10,9 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from "lucide-react";
 
 const Login = () => {
-  // Using test credentials, real credentials should be entered by the user
   const [email, setEmail] = useState("admin@velammal.edu");
-  const [password, setPassword] = useState("Monesh23062004");
+  const [password, setPassword] = useState("admin123"); // Changed to a simpler password
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -179,7 +178,7 @@ const Login = () => {
         
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>Demo Credentials</p>
-          <p>Email: admin@velammal.edu | Password: Monesh23062004</p>
+          <p>Email: admin@velammal.edu | Password: admin123</p>
         </div>
       </div>
     </div>

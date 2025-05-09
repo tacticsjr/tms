@@ -73,12 +73,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     // First set up auth subscription to avoid missing auth events
-    const subscription = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        // Defer user profile fetch to avoid auth listener deadlocks
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
       }
@@ -96,7 +99,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     return () => {
-      subscription.data.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -122,26 +125,40 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const handleSignIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting sign in with:", email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         console.error("Login error:", error);
-        toast.error(`Login failed: ${error.message}`);
+        
+        if (error.message.includes("Email not confirmed")) {
+          toast.error("Please check your email and confirm your account before logging in.");
+        } else {
+          toast.error(`Login failed: ${error.message}`);
+        }
+        
         return { success: false, error: error.message };
       }
 
+      if (!data.user) {
+        toast.error("Login failed: User data not found");
+        return { success: false, error: "User data not found" };
+      }
+
+      console.log("Login successful, user:", data.user.id);
       toast.success("Login successful. Welcome back!");
       
       return { success: true };
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(`Login error: ${error.message}`);
+      toast.error(`Login error: ${error.message || "Unknown error"}`);
       return { success: false, error: error.message };
     }
   };
 
   const handleSignUp = async (email: string, password: string, userData: any) => {
     try {
+      console.log("Attempting signup with:", email);
       // 1. Sign up user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({ 
         email, 
@@ -149,12 +166,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         options: {
           data: {
             name: userData.name,
-            role: userData.role || 'student'
+            role: userData.role || 'student',
+            department: userData.department,
+            section: userData.section,
+            year: userData.year
           }
         }
       });
       
       if (authError) {
+        console.error("Signup error:", authError);
         throw authError;
       }
       
@@ -162,28 +183,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         throw new Error('User creation failed');
       }
       
-      // 2. Insert additional user data into the users table
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role || 'student',
-          department: userData.department,
-          section: userData.section,
-          year: userData.year || '2023'
-        });
-      
-      if (profileError) {
-        throw profileError;
-      }
-      
-      toast.success("Registration successful! Your account has been created.");
+      console.log("Signup successful, user created:", authData.user.id);
+      toast.success("Registration successful! Please check your email to confirm your account.");
       
       return { success: true };
     } catch (error: any) {
-      toast.error(`Registration failed: ${error.message}`);
+      console.error("Registration error:", error);
+      toast.error(`Registration failed: ${error.message || "Unknown error"}`);
       return { success: false, error: error.message };
     }
   };

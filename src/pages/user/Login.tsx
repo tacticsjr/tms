@@ -5,19 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { supabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -33,7 +21,6 @@ type FormValues = z.infer<typeof formSchema>;
 const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { signIn } = useSupabaseAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,13 +34,47 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      const { success, error } = await signIn(data.email, data.password);
+      console.log("Attempting login with:", data.email);
       
-      if (success) {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+      
+      if (error) {
+        console.error("Login error:", error);
+        
+        if (error.message.includes("Email not confirmed")) {
+          toast.error("Please check your email and confirm your account before logging in.");
+        } else {
+          toast.error(`Login failed: ${error.message}`);
+        }
+        
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Login successful
+      if (authData && authData.user) {
         toast.success("Login successful!");
-        navigate("/user/dashboard");
-      } else {
-        toast.error(error || "Login failed. Please try again.");
+        
+        // Check user role for redirection
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Error fetching user profile:", profileError);
+        }
+        
+        // Redirect based on role
+        if (profile && profile.role === 'admin') {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/user/dashboard");
+        }
       }
     } catch (error: any) {
       console.error("Login error:", error);

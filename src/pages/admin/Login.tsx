@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from "lucide-react";
 
 const Login = () => {
+  // Using test credentials, real credentials should be entered by the user
   const [email, setEmail] = useState("admin@velammal.edu");
   const [password, setPassword] = useState("Monesh23062004");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,13 +22,15 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
+      console.log("Attempting admin login with:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
-        console.error("Login error:", error);
+        console.error("Admin login error:", error);
         toast({
           title: "Login failed",
           description: error.message,
@@ -37,6 +40,8 @@ const Login = () => {
         return;
       }
       
+      console.log("Admin login successful, user:", data.user?.id);
+      
       // Successfully logged in, now check if the user has the admin role
       const { data: profile, error: profileError } = await supabase
         .from('users')
@@ -45,7 +50,7 @@ const Login = () => {
         .single();
       
       if (profileError || !profile) {
-        console.error("Profile fetch error:", profileError);
+        console.log("Profile not found or error, creating admin profile");
         // Create a user profile if it doesn't exist (first login)
         const { error: insertError } = await supabase
           .from('users')
@@ -57,6 +62,7 @@ const Login = () => {
           }]);
           
         if (insertError) {
+          console.error("Profile setup error:", insertError);
           toast({
             title: "Profile setup failed",
             description: "Could not create user profile",
@@ -77,6 +83,7 @@ const Login = () => {
       }
       
       if (profile.role !== 'admin') {
+        console.error("User is not an admin:", profile.role);
         toast({
           title: "Access denied",
           description: "You don't have admin access",

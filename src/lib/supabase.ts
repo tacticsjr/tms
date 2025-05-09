@@ -45,7 +45,7 @@ export const getStaffBySection = async (year: string, dept: string, section: str
     .from('staff')
     .select('*')
     .eq('year', year)
-    .eq('dept', dept)
+    .eq('department', dept)
     .eq('section', section)
 
   if (error) {

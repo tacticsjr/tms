@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,17 +42,20 @@ const formSchema = z.object({
   section: z.string({
     required_error: "Please select a section.",
   }),
+  year: z.string({
+    required_error: "Please select your year.",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const departments = ["CSE", "IT", "ECE", "EEE", "MECH", "CIVIL", "AI&DS"];
 const sections = ["A", "B", "C", "D"];
+const years = ["I", "II", "III", "IV"];
 
 const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { signUp } = useSupabaseAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,6 +65,7 @@ const Register = () => {
       password: "",
       department: "",
       section: "",
+      year: "",
     },
   });
 
@@ -69,25 +73,78 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
-      // Create user object with form data
-      const userData = {
-        name: data.name,
+      console.log("Registration data:", data);
+      
+      // 1. Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
-        department: data.department,
-        section: data.section,
-      };
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            role: "student"
+          }
+        }
+      });
       
-      const { success, error } = await signUp(data.email, data.password, userData);
-      
-      if (success) {
-        toast.success("Registration successful!");
-        navigate("/user/dashboard");
-      } else {
-        toast.error(error || "Registration failed. Please try again.");
+      if (authError) {
+        console.error("Auth error:", authError);
+        toast.error(`Registration failed: ${authError.message}`);
+        setIsSubmitting(false);
+        return;
       }
+      
+      if (!authData.user) {
+        toast.error("User creation failed. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log("Auth successful, user created:", authData.user.id);
+      
+      // 2. Insert user profile data into the users table
+      const { error: profileError } = await supabase
+        .from("users")
+        .insert({
+          id: authData.user.id,
+          name: data.name,
+          email: data.email,
+          role: "student",
+          department: data.department,
+          section: data.section,
+          year: data.year
+        });
+      
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        toast.error(`Profile setup failed: ${profileError.message}`);
+        // Attempt to clean up the auth user if profile creation fails
+        await supabase.auth.signOut();
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log("User profile created successfully");
+      toast.success("Registration successful! Your account has been created.");
+      
+      // Sign in the user automatically
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+      
+      if (signInError) {
+        console.error("Auto sign-in error:", signInError);
+        toast.error("Account created, but auto-login failed. Please login manually.");
+        navigate("/user/login");
+        return;
+      }
+      
+      // Redirect to dashboard
+      navigate("/user/dashboard");
     } catch (error: any) {
-      console.error("Registration error:", error);
-      toast.error("Registration failed. Please try again.");
+      console.error("Unexpected error:", error);
+      toast.error(`Registration failed: ${error.message || "An unexpected error occurred"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +206,32 @@ const Register = () => {
                       <FormControl>
                         <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="year"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Year</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your year" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year}>{year} Year</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

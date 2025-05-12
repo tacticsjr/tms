@@ -23,16 +23,29 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
-      console.log("Attempting admin login with:", email);
+      console.log("Attempting direct admin login with:", email);
       
-      // Use the signIn method from SupabaseAuthContext
-      const { success, error } = await signIn(email, password);
+      // Use direct Supabase auth method instead of context method
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (!success) {
+      if (error) {
         console.error("Admin login failed:", error);
         toast({
           title: "Login failed",
-          description: error || "Invalid login credentials",
+          description: error.message || "Invalid login credentials",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!data.user) {
+        toast({
+          title: "Login failed",
+          description: "User data not found",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -45,22 +58,34 @@ const Login = () => {
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
-        .eq('email', email)
+        .eq('id', data.user.id)
         .single();
       
       if (profileError || !profile) {
         console.error("Profile fetch error:", profileError);
-        toast({
-          title: "Access denied",
-          description: "Could not verify admin access",
-          variant: "destructive",
-        });
-        await supabase.auth.signOut();
-        setIsSubmitting(false);
-        return;
-      }
-      
-      if (profile.role !== 'admin') {
+        
+        // Create a profile if it doesn't exist
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email || '',
+            name: "Admin User",
+            role: "admin"
+          });
+          
+        if (insertError) {
+          console.error("Error creating admin profile:", insertError);
+          toast({
+            title: "Access denied",
+            description: "Could not verify admin access",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (profile.role !== 'admin') {
         console.error("User is not an admin:", profile.role);
         toast({
           title: "Access denied",

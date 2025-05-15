@@ -1,5 +1,5 @@
 import * as React from "react"
-import { toast as sonnerToast, ToastT, Toast } from "sonner"
+import { toast as sonnerToast, type ToastT } from "sonner"
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
@@ -128,11 +128,6 @@ type ToastProps = Omit<ToasterToast, "id"> & {
 
 function toast({ ...props }: ToastProps) {
   const id = props.id || genId()
-
-  const options: Toast = {
-    id,
-    ...props,
-  }
 
   // Use sonner's toast directly
   if (props.variant === "destructive") {

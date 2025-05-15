@@ -16,6 +16,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import StaffListSection from "@/components/dashboard/StaffListSection";
+import { Staff } from "@/types/timetable";
 
 interface StaffMember {
   id: string;
@@ -32,7 +35,7 @@ const StaffManagement: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
   
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [newStaff, setNewStaff] = useState({
     name: "",
     email: "",
@@ -41,6 +44,7 @@ const StaffManagement: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStaff();
@@ -64,6 +68,7 @@ const StaffManagement: React.FC = () => {
     if (!year || !dept || !section) return;
     
     setLoading(true);
+    setDbError(null);
     try {
       const { data, error } = await supabase
         .from('staff')
@@ -82,12 +87,20 @@ const StaffManagement: React.FC = () => {
         email: item.email,
         subject: item.subject || '',
         maxPeriods: item.max_periods || 5,
+        subjects: [item.subject], // Convert subject to subjects array for compatibility with StaffListSection
         department: item.department,
         section: item.section,
         year: item.year
       })) || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching staff:', error);
+      
+      if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        setDbError("Database tables haven't been created yet. Please run the SQL migration script first.");
+      } else {
+        setDbError(`Failed to load staff data: ${error.message || 'Unknown error'}`);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to load staff data. Please try again.",
@@ -140,19 +153,56 @@ const StaffManagement: React.FC = () => {
       toast({
         title: "Staff Added",
         description: `${newStaff.name} has been added successfully`,
+        variant: "success",
       });
       
       // Fetch updated staff list
       fetchStaff();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding staff:', error);
+      
+      if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        setDbError("Database tables haven't been created yet. Please run the SQL migration script first.");
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to add staff member. Please try again.",
+        description: `Failed to add staff member: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStaffUpdate = async (updatedStaff: Staff) => {
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({
+          max_periods: updatedStaff.maxPeriods
+        })
+        .eq('id', updatedStaff.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Staff Updated",
+        description: `${updatedStaff.name}'s details have been updated`,
+        variant: "success",
+      });
+      
+      // Fetch updated staff list
+      fetchStaff();
+    } catch (error: any) {
+      console.error('Error updating staff:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update staff member: ${error.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -170,15 +220,16 @@ const StaffManagement: React.FC = () => {
       toast({
         title: "Staff Removed",
         description: `${name} has been removed from this section`,
+        variant: "success",
       });
       
       // Fetch updated staff list
       fetchStaff();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing staff:', error);
       toast({
         title: "Error",
-        description: "Failed to remove staff member. Please try again.",
+        description: `Failed to remove staff member: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -215,6 +266,15 @@ const StaffManagement: React.FC = () => {
         </p>
       </div>
 
+      {dbError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Database Error</AlertTitle>
+          <AlertDescription>
+            {dbError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Staff Assigned to This Section</CardTitle>
@@ -227,43 +287,12 @@ const StaffManagement: React.FC = () => {
             <div className="py-8 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : staff.length === 0 ? (
+          ) : dbError ? (
             <div className="py-8 text-center">
-              <p className="text-muted-foreground">No staff members assigned to this section yet.</p>
+              <p className="text-muted-foreground">Unable to load staff data due to database errors.</p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Max Periods</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staff.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell>{member.name}</TableCell>
-                      <TableCell>{member.email}</TableCell>
-                      <TableCell>{member.subject}</TableCell>
-                      <TableCell>{member.maxPeriods}/day</TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDeleteStaff(member.id, member.name)}
-                        >
-                          Remove
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <StaffListSection staffList={staff} onStaffUpdate={handleStaffUpdate} />
           )}
         </CardContent>
       </Card>
@@ -285,6 +314,7 @@ const StaffManagement: React.FC = () => {
                   value={newStaff.name} 
                   onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} 
                   placeholder="e.g. Dr. John Doe"
+                  disabled={!!dbError}
                 />
               </div>
               <div className="space-y-2">
@@ -295,6 +325,7 @@ const StaffManagement: React.FC = () => {
                   value={newStaff.email} 
                   onChange={(e) => setNewStaff({...newStaff, email: e.target.value})} 
                   placeholder="e.g. johndoe@velammal.edu"
+                  disabled={!!dbError}
                 />
               </div>
             </div>
@@ -306,6 +337,7 @@ const StaffManagement: React.FC = () => {
                   value={newStaff.subject} 
                   onChange={(e) => setNewStaff({...newStaff, subject: e.target.value})} 
                   placeholder="e.g. Machine Learning"
+                  disabled={!!dbError}
                 />
               </div>
               <div className="space-y-2">
@@ -317,6 +349,7 @@ const StaffManagement: React.FC = () => {
                   max={10}
                   value={newStaff.maxPeriods} 
                   onChange={(e) => setNewStaff({...newStaff, maxPeriods: Number(e.target.value)})} 
+                  disabled={!!dbError}
                 />
               </div>
             </div>
@@ -325,7 +358,7 @@ const StaffManagement: React.FC = () => {
         <CardFooter>
           <Button 
             onClick={handleAddStaff} 
-            disabled={saving}
+            disabled={saving || !!dbError}
           >
             {saving ? (
               <>

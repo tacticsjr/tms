@@ -11,14 +11,31 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Staff } from "@/types/timetable";
-import { Edit2, Save, Mail } from "lucide-react";
+import { Edit2, Save, Mail, Trash2 } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface StaffListSectionProps {
   staffList: Staff[];
   onStaffUpdate: (updatedStaff: Staff) => void;
+  onStaffDelete?: (staffId: string, staffName: string) => void;
 }
 
-const StaffListSection: React.FC<StaffListSectionProps> = ({ staffList, onStaffUpdate }) => {
+const StaffListSection: React.FC<StaffListSectionProps> = ({ 
+  staffList, 
+  onStaffUpdate,
+  onStaffDelete 
+}) => {
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
   const [editedMaxPeriods, setEditedMaxPeriods] = useState<number>(0);
   
@@ -33,6 +50,11 @@ const StaffListSection: React.FC<StaffListSectionProps> = ({ staffList, onStaffU
       maxPeriods: editedMaxPeriods
     });
     setEditingStaffId(null);
+    
+    toast({
+      title: "Changes saved",
+      description: `Updated max periods for ${staff.name}`,
+    });
   };
   
   const handleCancelEdit = () => {
@@ -41,6 +63,12 @@ const StaffListSection: React.FC<StaffListSectionProps> = ({ staffList, onStaffU
   
   const sendEmail = (email: string) => {
     window.open(`mailto:${email}`);
+  };
+  
+  const handleDeleteClick = (staff: Staff) => {
+    if (onStaffDelete) {
+      onStaffDelete(staff.id, staff.name);
+    }
   };
   
   if (!staffList || staffList.length === 0) {
@@ -125,14 +153,44 @@ const StaffListSection: React.FC<StaffListSectionProps> = ({ staffList, onStaffU
                     </Button>
                   </div>
                 ) : (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleEditClick(staff)}
-                  >
-                    <Edit2 className="mr-1 h-3 w-3" />
-                    Edit
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditClick(staff)}
+                    >
+                      <Edit2 className="mr-1 h-3 w-3" />
+                      Edit
+                    </Button>
+                    
+                    {onStaffDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                          >
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Remove
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove {staff.name} from this section. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteClick(staff)}>
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 )}
               </TableCell>
             </TableRow>

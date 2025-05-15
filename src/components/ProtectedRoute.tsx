@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requiredRole = 'admin' 
 }) => {
-  const { user, profile, loading } = useSupabaseAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [location.pathname, user]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="spinner h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
@@ -36,11 +36,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Check role-based access if needed
-  if (requiredRole && profile && profile.role !== requiredRole) {
+  if (requiredRole && user.role !== requiredRole) {
     // Handle unauthorized access - redirect to proper role-based login
-    const redirectPath = profile.role === 'student' 
+    const redirectPath = user.role === 'student' 
       ? '/user/login' 
-      : profile.role === 'staff' 
+      : user.role === 'staff' 
       ? '/staff/login' 
       : '/admin/login';
       

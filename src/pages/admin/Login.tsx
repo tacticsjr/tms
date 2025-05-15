@@ -1,14 +1,13 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("admin@velammal.edu");
@@ -16,84 +15,24 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { signIn } = useSupabaseAuth();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      console.log("Attempting direct admin login with:", email);
+      console.log("Attempting login with demo credentials:", email);
       
-      // Use direct Supabase auth method instead of context method
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Use the login method from AuthContext
+      const success = await login(email, password);
       
-      if (error) {
-        console.error("Admin login failed:", error);
+      if (!success) {
         toast({
           title: "Login failed",
-          description: error.message || "Invalid login credentials",
+          description: "Invalid email or password. Please try again.",
           variant: "destructive",
         });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      if (!data.user) {
-        toast({
-          title: "Login failed",
-          description: "User data not found",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      console.log("Admin login successful, checking role");
-      
-      // Check if user has admin role
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-      
-      if (profileError || !profile) {
-        console.error("Profile fetch error:", profileError);
-        
-        // Create a profile if it doesn't exist
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email || '',
-            name: "Admin User",
-            role: "admin"
-          });
-          
-        if (insertError) {
-          console.error("Error creating admin profile:", insertError);
-          toast({
-            title: "Access denied",
-            description: "Could not verify admin access",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          setIsSubmitting(false);
-          return;
-        }
-      } else if (profile.role !== 'admin') {
-        console.error("User is not an admin:", profile.role);
-        toast({
-          title: "Access denied",
-          description: "You don't have admin access",
-          variant: "destructive",
-        });
-        // Sign the user out if they don't have admin access
-        await supabase.auth.signOut();
         setIsSubmitting(false);
         return;
       }

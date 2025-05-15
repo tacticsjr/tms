@@ -15,8 +15,11 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
+        // Remove the type property to avoid conflicts with Radix UI Toast
+        const { type, ...restProps } = props;
+        
         return (
-          <Toast key={id} {...props} variant={variant}>
+          <Toast key={id} {...restProps} variant={variant}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

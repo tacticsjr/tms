@@ -148,97 +148,112 @@ const TimetableView: React.FC = () => {
     }
   };
  
-  const handleSaveTimetable = () => {
+  const handleSaveTimetable = async () => {
     setIsSaving(true);
-    // In a real application, this would send the data to the server
-    // For now we'll just persist to localStorage with the locked cells information
-    const draft = localStorage.getItem(`timetable_draft_${year}_${dept}_${section}`);
-   
-    if (draft) {
-      try {
-        const parsedDraft = JSON.parse(draft) as TimetableDraft;
-       
-        // Update locked status on the timeslots
-        const updatedTimeSlots = parsedDraft.timeSlots.map(slot => {
-          const isLocked = lockedCells.some(
-            cell => cell.day === slot.day && cell.period === slot.period
-          );
-         
-          return {
-            ...slot,
-            locked: isLocked
-          };
-        });
-       
-        // Save the updated draft
-        const currentTime = new Date();
-        const updatedDraft: TimetableDraft = {
-          ...parsedDraft,
-          timeSlots: updatedTimeSlots,
-          lastUpdated: currentTime
-        };
-       
-        localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`,
-          JSON.stringify(updatedDraft)
+    
+    try {
+      // Get the current timetable grid from state
+      if (!timetable || Object.keys(timetable).length === 0) {
+        throw new Error("No timetable data to save");
+      }
+      
+      // Save to Supabase
+      if (year && dept && section) {
+        const saveSuccess = await saveDraftTimetable(
+          dept,
+          section,
+          timetable
         );
         
-        // Add to recent updates in app state
-        const appStateKey = `appState_${year}_${dept}_${section}`;
-        const appStateStr = localStorage.getItem(appStateKey);
-        
-        if (appStateStr) {
-          try {
-            const appState = JSON.parse(appStateStr);
-            
-            // Create a new update
-            const newUpdate: RecentUpdate = {
-              id: `update_${Date.now()}`,
-              time: currentTime,
-              message: `Timetable draft saved for ${year} Year ${dept} - Section ${section}`,
-              type: 'timetable',
-              relatedId: `${year}_${dept}_${section}_draft`
-            };
-            
-            // Update the app state with the new update
-            const updatedAppState = {
-              ...appState,
-              recentUpdates: [newUpdate, ...appState.recentUpdates.slice(0, 19)]
-            };
-            
-            // Save the updated app state
-            localStorage.setItem(appStateKey, JSON.stringify(updatedAppState));
-          } catch (error) {
-            console.error("Error updating app state:", error);
-          }
+        if (!saveSuccess) {
+          throw new Error("Failed to save timetable to database");
         }
-       
-        setTimeout(() => {
-          setIsSaving(false);
-          setSaveComplete(true);
-          
-          toast({
-            title: "Timetable Saved",
-            description: "Your draft timetable has been saved successfully with locked cells preserved.",
-          });
-          
-          setTimeout(() => {
-            setSaveComplete(false);
-          }, 3000);
-        }, 1000);
-      } catch (error) {
-        console.error("Error saving timetable:", error);
-        setIsSaving(false);
-        toast({
-          title: "Save Failed",
-          description: "There was an error saving your timetable.",
-          variant: "destructive"
-        });
       }
-    } else {
+      
+      // Also save to localStorage as before for backward compatibility
+      const draft = localStorage.getItem(`timetable_draft_${year}_${dept}_${section}`);
+     
+      if (draft) {
+        try {
+          const parsedDraft = JSON.parse(draft) as TimetableDraft;
+         
+          // Update locked status on the timeslots
+          const updatedTimeSlots = parsedDraft.timeSlots.map(slot => {
+            const isLocked = lockedCells.some(
+              cell => cell.day === slot.day && cell.period === slot.period
+            );
+           
+            return {
+              ...slot,
+              locked: isLocked
+            };
+          });
+         
+          // Save the updated draft
+          const currentTime = new Date();
+          const updatedDraft: TimetableDraft = {
+            ...parsedDraft,
+            timeSlots: updatedTimeSlots,
+            lastUpdated: currentTime
+          };
+         
+          localStorage.setItem(`timetable_draft_${year}_${dept}_${section}`,
+            JSON.stringify(updatedDraft)
+          );
+          
+          // Add to recent updates in app state
+          const appStateKey = `appState_${year}_${dept}_${section}`;
+          const appStateStr = localStorage.getItem(appStateKey);
+          
+          if (appStateStr) {
+            try {
+              const appState = JSON.parse(appStateStr);
+              
+              // Create a new update
+              const newUpdate: RecentUpdate = {
+                id: `update_${Date.now()}`,
+                time: currentTime,
+                message: `Timetable draft saved for ${year} Year ${dept} - Section ${section}`,
+                type: 'timetable',
+                relatedId: `${year}_${dept}_${section}_draft`
+              };
+              
+              // Update the app state with the new update
+              const updatedAppState = {
+                ...appState,
+                recentUpdates: [newUpdate, ...appState.recentUpdates.slice(0, 19)]
+              };
+              
+              // Save the updated app state
+              localStorage.setItem(appStateKey, JSON.stringify(updatedAppState));
+            } catch (error) {
+              console.error("Error updating app state:", error);
+            }
+          }
+        } catch (error) {
+          console.error("Error saving local timetable:", error);
+        }
+      }
+      
+      setTimeout(() => {
+        setIsSaving(false);
+        setSaveComplete(true);
+        
+        toast({
+          title: "Timetable Saved",
+          description: "Your draft timetable has been saved successfully with locked cells preserved.",
+        });
+        
+        setTimeout(() => {
+          setSaveComplete(false);
+        }, 3000);
+      }, 1000);
+    } catch (error) {
+      console.error("Error saving timetable:", error);
       setIsSaving(false);
       toast({
-        title: "No Draft Found",
-        description: "No timetable draft found to save.",
+        title: "Save Failed",
+        description: `There was an error saving your timetable: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
@@ -441,13 +456,13 @@ const TimetableView: React.FC = () => {
  
   // Add a new function to handle promoting to master
   const handlePromoteToMaster = () => {
-    // Save the current draft first
+    // First save the current draft
     handleSaveTimetable();
     
     // Navigate to the master timetable page where they can promote it
     setTimeout(() => {
       window.location.href = `/admin/master/${year}/${dept}/${section}`;
-    }, 1000);
+    }, 1500);
   };
 
   return (

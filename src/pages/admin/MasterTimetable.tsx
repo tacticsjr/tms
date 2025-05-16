@@ -86,7 +86,7 @@ const MasterTimetable: React.FC = () => {
         toast({
           title: "Master timetable confirmed",
           description: "The timetable has been set as the master timetable.",
-          variant: "success"
+          variant: "default"
         });
         
         // Reload data to show the new master timetable
@@ -292,28 +292,36 @@ const MasterTimetable: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.keys(timetable).map((day) => (
-                    <TableRow key={day}>
-                      <TableCell className="font-medium">{day}</TableCell>
-                      {Array.from({ length: 7 }, (_, i) => i).map((period) => {
-                        const entry = timetable[day]?.[period];
-                        return (
-                          <TableCell 
-                            key={`${day}-${period}`} 
-                            className={`border ${getCellClass(entry)}`}
-                          >
-                            {entry ? (
-                              <div>
-                                <div className="font-medium">{entry.subject}</div>
-                                {entry.title && <div className="text-xs text-muted-foreground">{entry.title}</div>}
-                                <div className="text-xs mt-1">{entry.staff}</div>
-                              </div>
-                            ) : "—"}
-                          </TableCell>
-                        );
-                      })}
+                  {timetable && Object.keys(timetable).length > 0 ? (
+                    Object.keys(timetable).map((day) => (
+                      <TableRow key={day}>
+                        <TableCell className="font-medium">{day}</TableCell>
+                        {Array.from({ length: 7 }, (_, i) => i).map((period) => {
+                          const entry = timetable[day]?.[period];
+                          return (
+                            <TableCell 
+                              key={`${day}-${period}`} 
+                              className={`border ${getCellClass(entry)}`}
+                            >
+                              {entry ? (
+                                <div>
+                                  <div className="font-medium">{entry.subject}</div>
+                                  {entry.title && <div className="text-xs text-muted-foreground">{entry.title}</div>}
+                                  <div className="text-xs mt-1">{entry.staff}</div>
+                                </div>
+                              ) : "—"}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        No data available in the master timetable.
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

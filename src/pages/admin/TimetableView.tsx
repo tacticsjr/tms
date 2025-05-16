@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Lock, Unlock, Save, RotateCcw, FileCheck } from "lucide-react";
+import { Lock, Unlock, Save, RotateCcw, FileCheck, ArrowRight } from "lucide-react";
 import { TimetableData, TimetableDraft, TimeSlot, RecentUpdate } from "@/types/timetable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { generateTimetable, convertToTimetableData } from "@/utils/timetableGenerator";
 import { staffData, subjectData } from "./TimetableGenerator";
+import { saveDraftTimetable } from "@/services/timetableService";
 
 const TimetableView: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
@@ -431,8 +431,44 @@ const TimetableView: React.FC = () => {
     );
   };
  
+  // Add a new function to handle promoting to master
+  const handlePromoteToMaster = () => {
+    // Save the current draft first
+    handleSaveTimetable();
+    
+    // Navigate to the master timetable page where they can promote it
+    setTimeout(() => {
+      window.location.href = `/admin/master/${year}/${dept}/${section}`;
+    }, 1000);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Add breadcrumbs */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}`}>{year} Year</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}`}>{dept}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Timetable Draft</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div>
         <div className="flex items-center space-x-2">
           <Link to="/admin/dashboard" className="text-muted-foreground hover:text-foreground">
@@ -457,7 +493,7 @@ const TimetableView: React.FC = () => {
           <span className="text-muted-foreground">/</span>
           <span>Draft View</span>
         </div>
-       
+        
         <h2 className="text-3xl font-bold tracking-tight mt-2">
           Draft Timetable
         </h2>
@@ -533,6 +569,10 @@ const TimetableView: React.FC = () => {
               <Button className="h-8" onClick={handleSaveTimetable}>
                 <Save className="mr-1 h-4 w-4" />
                 Save Draft
+              </Button>
+              <Button variant="secondary" className="h-8" onClick={handlePromoteToMaster}>
+                <ArrowRight className="mr-1 h-4 w-4" />
+                Review & Promote
               </Button>
             </div>
           </CardHeader>
@@ -676,5 +716,5 @@ const TimetableView: React.FC = () => {
     </div>
   );
 };
- 
+
 export default TimetableView;

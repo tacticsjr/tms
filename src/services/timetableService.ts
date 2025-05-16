@@ -2,14 +2,14 @@
 import { supabase } from '@/lib/supabase';
 import { TimetableData, TimetableEntry } from '@/types/timetable';
 
-export const getTimetableForSection = async (department: string, section: string) => {
+export const getTimetableForSection = async (department: string, section: string, status = 'confirmed') => {
   try {
     const { data, error } = await supabase
       .from('timetables')
       .select('*')
       .eq('department', department)
       .eq('section', section)
-      .eq('status', 'confirmed')
+      .eq('status', status)
       .single();
     
     if (error) throw error;
@@ -198,7 +198,7 @@ export const promoteTimetableToMaster = async (
       throw new Error('Draft not found');
     }
     
-    // Check if master already exists
+    // Archive any existing master timetable for this section
     const { data: existingMaster } = await supabase
       .from('timetables')
       .select('id')
@@ -208,35 +208,74 @@ export const promoteTimetableToMaster = async (
       .single();
     
     if (existingMaster) {
-      // Update existing master
-      const { error } = await supabase
+      // Update existing master (archive it by changing status to 'archived')
+      const { error: archiveError } = await supabase
         .from('timetables')
         .update({
-          grid: draft.grid,
-          updated_at: new Date().toISOString()
+          status: 'archived',
+          archived_at: new Date().toISOString()
         })
         .eq('id', existingMaster.id);
       
-      if (error) throw error;
-    } else {
-      // Create new master
-      const { error } = await supabase
-        .from('timetables')
-        .insert({
-          department,
-          section,
-          status: 'confirmed',
-          grid: draft.grid,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
+      if (archiveError) console.error('Error archiving existing master:', archiveError);
     }
+    
+    // Create new master from draft
+    const { error: insertError } = await supabase
+      .from('timetables')
+      .insert({
+        department,
+        section,
+        status: 'confirmed',
+        grid: draft.grid,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        draft_id: draft.id  // Reference to the original draft for tracking
+      });
+    
+    if (insertError) throw insertError;
+    
+    // Create notification about the new master timetable
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        section_id: `${department}-${section}`,
+        type: 'timetable',
+        message: `New master timetable has been confirmed for ${department} - Section ${section}.`,
+        created_at: new Date().toISOString(),
+        schedule_time: new Date().toISOString(),
+        recipients: ['ALL']
+      });
+    
+    if (notificationError) console.error('Error creating notification:', notificationError);
     
     return true;
   } catch (error) {
     console.error('Error promoting timetable to master:', error);
+    return false;
+  }
+};
+
+// New function to check if a master timetable exists
+export const checkMasterTimetableExists = async (department: string, section: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('timetables')
+      .select('id')
+      .eq('department', department)
+      .eq('section', section)
+      .eq('status', 'confirmed')
+      .single();
+    
+    if (error && error.code === 'PGSQL_ERROR_NO_ROWS') {
+      return false;
+    }
+    
+    if (error) throw error;
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error checking for master timetable:', error);
     return false;
   }
 };

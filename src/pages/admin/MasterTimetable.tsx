@@ -5,192 +5,198 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { AppState, TimetableStatus, createSectionKey } from "@/types/timetable";
-import { ArrowLeft, Check, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { AppState, TimetableStatus, createSectionKey, TimetableData } from "@/types/timetable";
+import { ArrowLeft, Check, AlertTriangle, Info } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getTimetableForSection, promoteTimetableToMaster, checkMasterTimetableExists } from "@/services/timetableService";
 
 const MasterTimetable: React.FC = () => {
   const { year, dept, section } = useParams<{ year: string; dept: string; section: string }>();
   const { toast } = useToast();
-  const [appState, setAppState] = useState<AppState | null>(null);
+  const [timetable, setTimetable] = useState<TimetableData | null>(null);
+  const [isDraftAvailable, setIsDraftAvailable] = useState(false);
+  const [isMasterAvailable, setIsMasterAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPromoting, setIsPromoting] = useState(false);
+  
+  // Period timings for reference
+  const periodTimings = [
+    "8:30-9:20",
+    "9:20-10:10",
+    "10:10-11:00",
+    "11:15-12:00",
+    "12:00-12:45",
+    "1:35-2:25",
+    "2:25-3:15"
+  ];
   
   useEffect(() => {
     if (year && dept && section) {
-      // Get stored app state
-      const storedState = localStorage.getItem(`appState_${year}_${dept}_${section}`);
-      if (storedState) {
-        try {
-          setAppState(JSON.parse(storedState));
-        } catch (error) {
-          console.error("Failed to parse app state:", error);
-        }
-      }
-      setIsLoading(false);
+      loadTimetableData();
     }
   }, [year, dept, section]);
-
-  // Also check for the timetable UI data directly
-  useEffect(() => {
-    if (!appState && year && dept && section) {
-      // Try to get the timetable UI data directly
-      const timetableUIKey = `timetable_ui_${year}_${dept}_${section}`;
-      const storedTimetableUI = localStorage.getItem(timetableUIKey);
+  
+  const loadTimetableData = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Check if master timetable exists
+      const masterExists = await checkMasterTimetableExists(dept || '', section || '');
+      setIsMasterAvailable(masterExists);
       
-      if (storedTimetableUI) {
-        try {
-          // If we found timetable UI data but no app state, create a minimal app state
-          const timetableGrid = JSON.parse(storedTimetableUI);
-          const sectionKey = createSectionKey(year, dept, section);
-          
-          const minimalAppState: AppState = {
-            staffList: [],
-            subjectList: [],
-            timetables: {
-              [sectionKey]: {
-                status: TimetableStatus.Draft,
-                grid: timetableGrid
-              }
-            },
-            masterCards: [],
-            recentUpdates: [],
-            substitutions: [],
-            notifications: [],
-            history: {
-              undoStack: [],
-              redoStack: []
-            }
-          };
-          
-          setAppState(minimalAppState);
-        } catch (error) {
-          console.error("Failed to parse timetable UI data:", error);
-        }
+      if (masterExists) {
+        // Get the master timetable
+        const masterTimetable = await getTimetableForSection(dept || '', section || '', 'confirmed');
+        setTimetable(masterTimetable);
+      } else {
+        // Check for draft
+        const draftTimetable = await getTimetableForSection(dept || '', section || '', 'draft');
+        setIsDraftAvailable(!!draftTimetable);
       }
-      setIsLoading(false);
-    }
-  }, [appState, year, dept, section]);
-
-  const handleConfirmMaster = () => {
-    if (!appState || !year || !dept || !section) return;
-    
-    const sectionKey = createSectionKey(year, dept, section);
-    const currentTimetable = appState.timetables[sectionKey];
-    
-    if (!currentTimetable) {
+    } catch (error) {
+      console.error("Error loading timetable data:", error);
       toast({
-        title: "No timetable found",
-        description: "Please generate a timetable draft first.",
+        title: "Error",
+        description: "Failed to load timetable data. Please try again.",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleConfirmMaster = async () => {
+    if (!dept || !section) return;
     
-    // Create a master card from the current timetable
-    const newMasterCard = {
-      sectionKey,
-      year,
-      dept,
-      section,
-      createdAt: new Date(),
-      lastEdited: new Date(),
-      status: 'Confirmed' as const,
-      grid: currentTimetable.grid
-    };
+    setIsPromoting(true);
     
-    // Update the timetable status to Master
-    const updatedTimetables = {
-      ...appState.timetables,
-      [sectionKey]: {
-        ...currentTimetable,
-        status: TimetableStatus.Master
+    try {
+      const success = await promoteTimetableToMaster(dept, section);
+      
+      if (success) {
+        toast({
+          title: "Master timetable confirmed",
+          description: "The timetable has been set as the master timetable.",
+          variant: "success"
+        });
+        
+        // Reload data to show the new master timetable
+        await loadTimetableData();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to promote timetable to master. Please try again.",
+          variant: "destructive"
+        });
       }
-    };
-    
-    // Add to master cards
-    const updatedMasterCards = [...appState.masterCards, newMasterCard];
-    
-    // Add a recent update
-    const newUpdate = {
-      id: `update_${Date.now()}`,
-      time: new Date(),
-      message: `Timetable for ${year} Year ${dept} Section ${section} confirmed as Master`,
-      type: 'timetable' as const,
-      relatedId: sectionKey
-    };
-    
-    const updatedAppState = {
-      ...appState,
-      timetables: updatedTimetables,
-      masterCards: updatedMasterCards,
-      recentUpdates: [newUpdate, ...appState.recentUpdates.slice(0, 19)]
-    };
-    
-    setAppState(updatedAppState);
-    
-    // Save to localStorage
-    localStorage.setItem(`appState_${year}_${dept}_${section}`, JSON.stringify(updatedAppState));
-    
-    toast({
-      title: "Master timetable confirmed",
-      description: "The timetable has been set as the master timetable."
-    });
+    } catch (error) {
+      console.error("Error promoting timetable:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
+  // Helper to determine if a cell is a lab period
+  const isLabPeriod = (entry: any) => {
+    return entry && entry.isLab;
+  };
+  
+  // Helper to determine if a period is a break (tea or lunch)
+  const isBreakPeriod = (period: number) => {
+    // Tea break after period 3, lunch break after period 5
+    return period === 3 || period === 5;
+  };
+  
+  // Get class for a cell based on the entry type
+  const getCellClass = (entry: any) => {
+    if (!entry) return "bg-white dark:bg-slate-900";
+    if (entry.isLab) return "bg-blue-50 dark:bg-blue-900/20";
+    return "bg-white dark:bg-slate-900";
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
-  }
-
-  const sectionKey = createSectionKey(year || '', dept || '', section || '');
-  
-  // Check both the appState and directly in localStorage for the timetable data
-  const currentTimetable = appState?.timetables[sectionKey];
-  
-  // Check if we have timetable data either in appState or directly from localStorage
-  const timetableUIKey = `timetable_ui_${year}_${dept}_${section}`;
-  const directTimetableData = localStorage.getItem(timetableUIKey);
-  
-  // Determine if a timetable is available either from appState or directly from localStorage
-  const isTimetableAvailable = !!(
-    (currentTimetable && Object.keys(currentTimetable.grid).length > 0) ||
-    (directTimetableData && Object.keys(JSON.parse(directTimetableData)).length > 0)
-  );
-  
-  // Determine if it's a master timetable
-  const isMaster = currentTimetable?.status === TimetableStatus.Master;
-  
-  // Get the matching master cards
-  const matchingMasterCards = appState?.masterCards.filter(
-    card => card.sectionKey === sectionKey
-  ) || [];
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center space-x-2">
-          <Link to="/admin/dashboard" className="text-muted-foreground hover:text-foreground">
-            Dashboard
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to={`/admin/dashboard/${year}`} className="text-muted-foreground hover:text-foreground">
-            {year} Year
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to={`/admin/dashboard/${year}/${dept}`} className="text-muted-foreground hover:text-foreground">
-            {dept}
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to={`/admin/dashboard/${year}/${dept}/${section}`} className="text-muted-foreground hover:text-foreground">
-            Section {section}
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <span>Master Timetable</span>
-        </div>
+    return (
+      <div className="space-y-6">
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}`}>{year} Year</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}`}>{dept}</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Master Timetable</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         
-        <h2 className="text-3xl font-bold tracking-tight mt-2">
+        <h2 className="text-3xl font-bold tracking-tight">
           Master Timetable
         </h2>
         <p className="text-muted-foreground">
-          Finalize and manage the master timetable
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}`}>{year} Year</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}`}>{dept}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Master Timetable</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Master Timetable
+        </h2>
+        <p className="text-muted-foreground">
+          {year} Year {dept} - Section {section}
         </p>
       </div>
 
@@ -202,111 +208,117 @@ const MasterTimetable: React.FC = () => {
           </Button>
         </Link>
         
-        {isTimetableAvailable && !isMaster && (
-          <Button onClick={handleConfirmMaster} className="flex items-center gap-2">
+        {isDraftAvailable && !isMasterAvailable && (
+          <Button 
+            onClick={handleConfirmMaster} 
+            className="flex items-center gap-2"
+            disabled={isPromoting}
+          >
             <Check className="h-4 w-4" />
-            Confirm as Master
+            {isPromoting ? "Promoting..." : "Promote to Master"}
           </Button>
         )}
       </div>
       
-      {!isTimetableAvailable && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Timetable Available</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Please generate a timetable draft first before confirming a master timetable.
-            </p>
+      {!isMasterAvailable && !isDraftAvailable && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>No Master Timetable Available</AlertTitle>
+          <AlertDescription>
+            No master timetable is available for this section. Please generate a draft timetable first.
+          </AlertDescription>
+          <div className="mt-4">
             <Link to={`/admin/timetables/${year}/${dept}/${section}`}>
               <Button>Generate Timetable</Button>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </Alert>
       )}
       
-      {isTimetableAvailable && (
+      {!isMasterAvailable && isDraftAvailable && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Draft Available</AlertTitle>
+          <AlertDescription>
+            A draft timetable is available for this section. Click "Promote to Master" to make it the official timetable.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isMasterAvailable && timetable && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Current Timetable</CardTitle>
-              <Badge className={isMaster ? "bg-green-500" : "bg-yellow-500"}>
-                {isMaster ? "Master" : "Draft"}
-              </Badge>
+              <CardTitle>Master Timetable</CardTitle>
+              <Badge className="bg-green-500">Confirmed</Badge>
             </div>
             <CardDescription>
               Last updated: {new Date().toLocaleDateString()}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted/50 p-4 rounded-md">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="border p-2 bg-muted">Period</th>
-                    <th className="border p-2 bg-muted">Monday</th>
-                    <th className="border p-2 bg-muted">Tuesday</th>
-                    <th className="border p-2 bg-muted">Wednesday</th>
-                    <th className="border p-2 bg-muted">Thursday</th>
-                    <th className="border p-2 bg-muted">Friday</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[1, 2, 3, 4, 5, 6].map(period => (
-                    <tr key={period}>
-                      <td className="border p-2 font-medium">Period {period}</td>
-                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day => {
-                        const timetableGrid = currentTimetable?.grid || {};
-                        const entry = timetableGrid[day]?.[period-1];
+            <div className="overflow-x-auto">
+              <Table className="border">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Day</TableHead>
+                    {Array.from({ length: 7 }, (_, i) => i).map((period) => (
+                      <TableHead key={period} className={`min-w-[160px] ${isBreakPeriod(period) ? "relative" : ""}`}>
+                        Period {period + 1}
+                        <div className="text-xs font-normal">{periodTimings[period]}</div>
+                        {isBreakPeriod(period) && (
+                          <div className="absolute -bottom-3 left-0 right-0 text-[10px] text-center text-muted-foreground">
+                            {period === 3 ? "Tea Break" : "Lunch Break"}
+                          </div>
+                        )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.keys(timetable).map((day) => (
+                    <TableRow key={day}>
+                      <TableCell className="font-medium">{day}</TableCell>
+                      {Array.from({ length: 7 }, (_, i) => i).map((period) => {
+                        const entry = timetable[day]?.[period];
                         return (
-                          <td key={day} className="border p-2 text-center">
+                          <TableCell 
+                            key={`${day}-${period}`} 
+                            className={`border ${getCellClass(entry)}`}
+                          >
                             {entry ? (
                               <div>
                                 <div className="font-medium">{entry.subject}</div>
-                                <div className="text-xs text-muted-foreground">{entry.staff}</div>
+                                {entry.title && <div className="text-xs text-muted-foreground">{entry.title}</div>}
+                                <div className="text-xs mt-1">{entry.staff}</div>
                               </div>
                             ) : "—"}
-                          </td>
+                          </TableCell>
                         );
                       })}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-              <p className="text-center text-muted-foreground mt-4">
-                {isMaster 
-                  ? "This is the confirmed master timetable for this section." 
-                  : "Confirm this timetable to set it as the master timetable."}
-              </p>
+                </TableBody>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {matchingMasterCards.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Master Timetable History</CardTitle>
-            <CardDescription>
-              Previous confirmed master timetables
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {matchingMasterCards.map((card, index) => (
-                <div key={index} className="border rounded-md p-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">
-                      {card.year} Year {card.dept} - Section {card.section}
-                    </h4>
-                    <Badge className="bg-green-500">Confirmed</Badge>
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                    <span>Created: {new Date(card.createdAt).toLocaleString()}</span>
-                    <span>Last edited: {new Date(card.lastEdited).toLocaleString()}</span>
-                  </div>
+            
+            {/* Timetable Legend */}
+            <div className="mt-6 border-t pt-4">
+              <h4 className="text-sm font-medium mb-2">Legend:</h4>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-white border mr-2"></div>
+                  <span className="text-sm">Theory</span>
                 </div>
-              ))}
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-blue-50 border mr-2"></div>
+                  <span className="text-sm">Lab</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-gray-100 border mr-2"></div>
+                  <span className="text-sm">Break</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

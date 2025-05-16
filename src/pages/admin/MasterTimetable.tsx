@@ -134,19 +134,27 @@ const MasterTimetable: React.FC = () => {
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to="/admin/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}`}>{year} Year</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to={`/admin/dashboard/${year}`}>{year} Year</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}`}>{dept}</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to={`/admin/dashboard/${year}/${dept}`}>{dept}</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -170,19 +178,27 @@ const MasterTimetable: React.FC = () => {
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to="/admin/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}`}>{year} Year</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to={`/admin/dashboard/${year}`}>{year} Year</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}`}>{dept}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to={`/admin/dashboard/${year}/${dept}`}>{dept}</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to={`/admin/dashboard/${year}/${dept}/${section}`}>Section {section}</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

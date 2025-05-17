@@ -80,6 +80,7 @@ const TodayScheduleSection: React.FC<TodayScheduleSectionProps> = ({
                   <div className="text-xs text-muted-foreground truncate">
                     {classInfo.staff ? classInfo.staff.split(' ').pop() : "Unassigned"}
                   </div>
+                  <div className="text-xs text-gray-500">{time}</div>
                   
                   {isCurrent && (
                     <Badge variant="outline" className="mt-1 text-[10px] border-primary text-primary">
@@ -94,7 +95,10 @@ const TodayScheduleSection: React.FC<TodayScheduleSectionProps> = ({
                   )}
                 </>
               ) : (
-                <div className="text-xs text-muted-foreground">Free period</div>
+                <>
+                  <div className="text-xs text-muted-foreground">Free period</div>
+                  <div className="text-xs text-gray-500">{time}</div>
+                </>
               )}
             </div>
           );

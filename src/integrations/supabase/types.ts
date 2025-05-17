@@ -9,6 +9,232 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          created_at: string | null
+          department: string
+          id: string
+          message: string
+          recipients: string[]
+          schedule_time: string
+          section: string
+          section_id: string
+          sent_by: string
+          type: string
+          year: string
+        }
+        Insert: {
+          created_at?: string | null
+          department: string
+          id?: string
+          message: string
+          recipients: string[]
+          schedule_time: string
+          section: string
+          section_id: string
+          sent_by: string
+          type: string
+          year: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string
+          id?: string
+          message?: string
+          recipients?: string[]
+          schedule_time?: string
+          section?: string
+          section_id?: string
+          sent_by?: string
+          type?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications_read: {
+        Row: {
+          id: string
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_read_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_read_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          created_at: string | null
+          department: string
+          email: string
+          id: string
+          max_periods: number | null
+          name: string
+          section: string
+          subject: string
+          year: string
+        }
+        Insert: {
+          created_at?: string | null
+          department: string
+          email: string
+          id?: string
+          max_periods?: number | null
+          name: string
+          section: string
+          subject: string
+          year: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string
+          email?: string
+          id?: string
+          max_periods?: number | null
+          name?: string
+          section?: string
+          subject?: string
+          year?: string
+        }
+        Relationships: []
+      }
+      subjects: {
+        Row: {
+          assigned_staff_id: string | null
+          code: string
+          created_at: string | null
+          department: string
+          id: string
+          is_continuous: boolean | null
+          periods_per_week: number
+          section: string
+          title: string
+          type: string
+          year: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          code: string
+          created_at?: string | null
+          department: string
+          id?: string
+          is_continuous?: boolean | null
+          periods_per_week: number
+          section: string
+          title: string
+          type: string
+          year: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          code?: string
+          created_at?: string | null
+          department?: string
+          id?: string
+          is_continuous?: boolean | null
+          periods_per_week?: number
+          section?: string
+          title?: string
+          type?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      substitutions: {
+        Row: {
+          absent_staff_id: string
+          created_at: string | null
+          date: string
+          department: string
+          id: string
+          period: number
+          reason: string | null
+          section: string
+          substitute_staff_id: string
+          year: string
+        }
+        Insert: {
+          absent_staff_id: string
+          created_at?: string | null
+          date: string
+          department: string
+          id?: string
+          period: number
+          reason?: string | null
+          section: string
+          substitute_staff_id: string
+          year: string
+        }
+        Update: {
+          absent_staff_id?: string
+          created_at?: string | null
+          date?: string
+          department?: string
+          id?: string
+          period?: number
+          reason?: string | null
+          section?: string
+          substitute_staff_id?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "substitutions_absent_staff_id_fkey"
+            columns: ["absent_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "substitutions_substitute_staff_id_fkey"
+            columns: ["substitute_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timetables: {
         Row: {
           archived_at: string | null
@@ -42,6 +268,39 @@ export type Database = {
           section?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string
+          id: string
+          name: string
+          role: string
+          section: string | null
+          year: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email: string
+          id: string
+          name: string
+          role: string
+          section?: string | null
+          year?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+          section?: string | null
+          year?: string | null
         }
         Relationships: []
       }

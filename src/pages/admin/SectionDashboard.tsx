@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +27,7 @@ import StaffListSection from "@/components/dashboard/StaffListSection";
 import SubjectsListSection from "@/components/dashboard/SubjectsListSection";
 import RecentUpdatesSection from "@/components/dashboard/RecentUpdatesSection";
 import { Clock, CheckCircle, AlertTriangle, Book, Users } from "lucide-react";
+import ClassNotificationsSetup from "@/components/dashboard/ClassNotificationsSetup";
 
 // Mock initial state (in a real app, this would come from a context or state management)
 const initializeAppState = (year: string, dept: string, section: string): AppState => {
@@ -600,6 +600,13 @@ const SectionDashboard: React.FC = () => {
               ))}
             </CardContent>
           </Card>
+          
+          {/* Add Class Notifications Setup Card */}
+          <ClassNotificationsSetup
+            year={year}
+            dept={dept}
+            section={section}
+          />
         </TabsContent>
         
         <TabsContent value="schedule" className="space-y-4">
